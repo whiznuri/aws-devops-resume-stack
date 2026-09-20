@@ -3,9 +3,7 @@ version: '3.8'
 services:
   # ลังที่ 1: Web Resume App
   web-resume:
-    build:
-      context: ./apps/web-resume
-      dockerfile: Dockerfile
+    image: whiznuri363924an/web-resume-app:v1.0
     container_name: web-resume-app
     ports:
       - "8080:80"
@@ -13,19 +11,10 @@ services:
 
   # ลังที่ 2: Lovelypet Back-office App
   lovelypet:
-    build:
-      context: ./apps/lovelypet
-      dockerfile: Dockerfile
+    image: whiznuri363924an/lovelypet-app:v1.0
     container_name: lovelypet-app
     ports:
       - "80:80"
-    volumes:
-      # เพิ่มบรรทัดนี้: bind-mount โค้ดสดจากเครื่องเข้าไปในคอนเทนเนอร์
-      # ทับโค้ดที่ COPY ไว้ตอน build (เดาว่า Dockerfile ใช้ php:*-apache
-      # ซึ่ง default document root คือ /var/www/html — เช็กใน Dockerfile
-      # อีกทีว่าตรงกันไหม ถ้า WORKDIR/DocumentRoot เป็นอย่างอื่นต้องเปลี่ยน
-      # ฝั่งขวาของ : ให้ตรงกับที่ Dockerfile ตั้งไว้)
-      - ./apps/lovelypet:/var/www/html
     depends_on:
       - database
     restart: always
@@ -37,8 +26,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: lovelypet_db
-      MYSQL_USER: lovely_user       # <-- เพิ่ม User ให้ตรงกับ db.php
-      MYSQL_PASSWORD: secret123      # <-- เพิ่ม Password ให้ตรงกับ db.php
+      MYSQL_USER: lovely_user
+      MYSQL_PASSWORD: secret123
     volumes:
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
       - mysql_data:/var/lib/mysql
