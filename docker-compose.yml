@@ -12,7 +12,7 @@ services:
     image: whiznuri363924an/lovelypet-app:v1.0
     container_name: lovelypet-app
     ports:
-      - "80:80"
+      - "8001:80"
     depends_on:
       - database
     restart: always
@@ -50,7 +50,6 @@ services:
       - prometheus
     restart: always
 
-  # 🚀 ดึง Metrics ฮาร์ดแวร์ของ EC2 (CPU, RAM, Disk, Network)
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
@@ -58,7 +57,6 @@ services:
       - "9100:9100"
     restart: always
 
-  # 🐳 ดึง Metrics ของ Docker Containers แต่ละตัว
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
@@ -71,6 +69,22 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - web-resume
+      - lovelypet
+      - grafana
 
 volumes:
   mysql_data:
