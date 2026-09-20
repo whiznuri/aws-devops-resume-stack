@@ -43,12 +43,13 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana-dashboard
+    container_name: grafana
+    environment:
+      - GF_SERVER_ROOT_URL=https://grafana.diffan.dev/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
     ports:
       - "3000:3000"
-    depends_on:
-      - prometheus
-    restart: always
+    # ... (ส่วนอื่นของ grafana ปล่อยไว้เหมือนเดิม)
 
   node-exporter:
     image: prom/node-exporter:latest
