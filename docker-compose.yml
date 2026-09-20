@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # ลังที่ 1: Web Resume App
   web-resume:
     image: whiznuri363924an/web-resume-app:v1.0
     container_name: web-resume-app
@@ -9,7 +8,6 @@ services:
       - "8080:80"
     restart: always
 
-  # ลังที่ 2: Lovelypet Back-office App
   lovelypet:
     image: whiznuri363924an/lovelypet-app:v1.0
     container_name: lovelypet-app
@@ -19,7 +17,6 @@ services:
       - database
     restart: always
 
-  # ลังที่ 3: MySQL Database
   database:
     image: mysql:8.0
     container_name: mysql-db
@@ -35,7 +32,6 @@ services:
       - "3306:3306"
     restart: always
 
-  # ลังที่ 4: Prometheus Monitoring
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus-monitor
@@ -43,6 +39,16 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9091:9090"
+    restart: always
+
+  # 🚀 เพิ่ม Grafana ตรงนี้ครับ
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
     restart: always
 
 volumes:
