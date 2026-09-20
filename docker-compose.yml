@@ -41,7 +41,6 @@ services:
       - "9091:9090"
     restart: always
 
-  # 🚀 เพิ่ม Grafana ตรงนี้ครับ
   grafana:
     image: grafana/grafana:latest
     container_name: grafana-dashboard
@@ -49,6 +48,28 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+    restart: always
+
+  # 🚀 ดึง Metrics ฮาร์ดแวร์ของ EC2 (CPU, RAM, Disk, Network)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    restart: always
+
+  # 🐳 ดึง Metrics ของ Docker Containers แต่ละตัว
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
     restart: always
 
 volumes:
