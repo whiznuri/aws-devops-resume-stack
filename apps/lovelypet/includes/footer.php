@@ -12,7 +12,7 @@ declare(strict_types=1);
   <div class="container">
     <span>&copy; <?= date('Y') ?> LovelyPet. All rights reserved.</span>
     <div class="footer-links">
-      <a href="http://15.135.71.60/">Contact</a>
+      <a href="http://15.135.71.60:8080/">Contact</a>
       <a href="/index.php?page=encyclopedia">Encyclopedia</a>
       <a href="/index.php?page=leaderboard">Leaderboard</a>
     </div>

@@ -33,7 +33,7 @@ $current_page = $_GET['page'] ?? 'home';
           <?php if (!$is_logged_in): ?>
             <li><a href="/index.php?page=register" class="<?= $current_page === 'register' ? 'is-active' : '' ?>">Register</a></li>
           <?php endif; ?>
-          <li><a href="http://15.135.71.60/" target="_blank" rel="noopener noreferrer">Contact</a></li>
+          <li><a href="http://15.135.71.60:8080/" target="_blank" rel="noopener noreferrer">Contact</a></li>
         </ul>
       </nav>
 
