@@ -221,7 +221,7 @@ $education = [
     </div>
     <div class="showcase__meta">
       <a href="http://15.135.71.60" class="showcase__link" target="_blank">Live Demo</a>
-      <a href="https://github.com/whiznuri/my-devops-project" class="showcase__link" target="_blank">GitHub Repo</a>
+      <a href="https://github.com/whiznuri/aws-devops-resume-stack" class="showcase__link" target="_blank">GitHub Repo</a>
     </div>
   </article>
 </section>
