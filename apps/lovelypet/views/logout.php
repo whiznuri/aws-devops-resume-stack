@@ -1,0 +1,31 @@
+<?php
+/**
+ * logout.php — Member Logout
+ * Location: /views/logout.php
+ */
+declare(strict_types=1);
+session_start();
+
+// ล้างค่าตัวแปร Session ทั้งหมด
+$_SESSION = [];
+
+// ลบ Session Cookie ฝั่ง Browser
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(
+        session_name(), 
+        '', 
+        time() - 42000,
+        $params["path"], 
+        $params["domain"],
+        $params["secure"], 
+        $params["httponly"]
+    );
+}
+
+// ทำลาย Session
+session_destroy();
+
+// Redirect กลับไปยัง Central Controller
+header('Location: /index.php');
+exit;

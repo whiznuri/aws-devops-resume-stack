@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 1. Web Application Container (PHP + Apache)
+  web:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: lovelypet_db
+      DB_USER: lovely_user
+      DB_PASS: secret123
+
+  # 2. Database Container (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: lovelypet_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: lovelypet_db
+      MYSQL_USER: lovely_user
+      MYSQL_PASSWORD: secret123
+    ports:
+      - "3306:3306"
+    volumes:
+      - lovelypet_db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  # 3. phpMyAdmin Container
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: lovelypet_phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: rootpassword
+
+volumes:
+  lovelypet_db_data:
