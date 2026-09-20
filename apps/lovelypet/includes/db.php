@@ -8,7 +8,7 @@
 
 declare(strict_types=1);
 
-$db_host    = 'db';
+$db_host    = 'database';
 $db_name    = 'lovelypet_db';
 $db_user    = 'lovely_user';
 $db_pass    = 'secret123';
