@@ -81,7 +81,7 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - /etc/letsencrypt:/etc/letsencrypt:ro #เปลี่ยนจาก - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - /var/www/certbot:/var/www/certbot #เปลี่ยนจาก - ./certbot/www:/var/www/certbot
     depends_on:
       - web-resume
       - lovelypet
