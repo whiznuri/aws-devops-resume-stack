@@ -63,7 +63,7 @@ $journey = [
   ]
 ];
 
-// ข้อมูล Skills 4 มิติ — อัปเดต Cloud/DevOps category ให้ตรงกับที่ทำจริงตอนนี้
+// ข้อมูล Skills 4 มิติ
 $skills_4d = [
   'OT & Industrial Instrumentation' => [
     'FLUKE 789 (Process Loop Testing)', 'FLUKE 1507 Insulation Tester',
@@ -82,17 +82,18 @@ $skills_4d = [
   ],
   'Cloud, DevOps & Software' => [
     'AWS EC2 & Linux System Admin (Ubuntu)',
+    'Infrastructure as Code (Terraform) — EC2, Security Group, Elastic IP',
     'Docker Containerization (Dockerfile, Docker Compose)',
-    'CI/CD Pipeline (GitHub Actions → Docker Hub)',
-    'Infrastructure as Code (Docker Compose-based IaC)',
-    'Monitoring & Observability (Prometheus, Grafana, node_exporter)',
-    'Apache Web Server & Clean URL Rewriting',
+    'CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment)',
+    'Nginx Reverse Proxy & Multi-domain Routing',
+    'SSL/TLS Certificate Management (Let\'s Encrypt / Certbot)',
+    'Monitoring & Observability (Prometheus, Grafana, node_exporter, cAdvisor)',
     'Modular PHP & MySQL Relational DB',
     'Git / GitHub Version Control Workflows'
   ]
 ];
 
-// ข้อมูลการศึกษา — แก้ GPAX ให้ตรงกับ transcript จริง (3.64 สะสม ไม่ใช่ 3.68 ซึ่งเป็นแค่เทอมล่าสุด)
+// ข้อมูลการศึกษา
 $education = [
   [
     'degree' => 'Bachelor of Science (B.Sc.)',
@@ -200,28 +201,29 @@ $education = [
   </div>
 </section>
 
-<!-- Project Showcase — เพิ่ม GitHub Repo link ต่อจาก Live Demo -->
+<!-- Project Showcase — Live Demo ชี้ไปที่ Lovely Pet เท่านั้น (ไม่ชี้กลับมาหน้าตัวเอง) -->
 <section id="work" class="showcase">
   <h2 class="section-title">Project Showcase</h2>
   <article class="showcase__card">
     <div class="showcase__text">
-      <h3>Diff Portfolio — AWS Cloud Architecture</h3>
+      <h3>Lovely Pet — Full-Stack App on a Self-Managed AWS Cloud Stack</h3>
       <p>
-        ระบบ Web Application บริหารจัดการข้อมูลแบบ Full-Stack ปรับปรุงสถาปัตยกรรมสู่ AWS EC2
-        พร้อม CI/CD Pipeline (GitHub Actions → Docker Hub) และ Infrastructure as Code
-        ใช้โครงสร้าง Modular PHP Architecture พร้อมระบบหลังบ้าน Authentication และฐานข้อมูล MySQL
+        ระบบ Web Application บริหารจัดการข้อมูลสัตว์เลี้ยงแบบ Full-Stack รันอยู่บน AWS EC2 ที่ provision
+        ด้วย Terraform (IaC) พร้อม CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment),
+        Nginx Reverse Proxy พร้อม HTTPS หลาย subdomain และ Monitoring Stack ที่ทำงานอยู่จริง
       </p>
       <ul class="showcase__facts">
-        <li>Self-managed Ubuntu Server: SSH, Security Rules, Apache mod_rewrite</li>
-        <li>CI/CD: Push code → Auto build & push image ขึ้น Docker Hub</li>
-        <li>Monitoring: Prometheus + Grafana (system-level metrics)</li>
-        <li>Clean URL Routing & Hash-less Smooth Scroll</li>
+        <li>Infrastructure as Code: Terraform provisioning EC2, Security Group, Elastic IP</li>
+        <li>CI/CD: Push code → Auto build & push image ขึ้น Docker Hub → Deploy อัตโนมัติ</li>
+        <li>Nginx Reverse Proxy + Multi-domain HTTPS (Let's Encrypt)</li>
+        <li>Monitoring: Prometheus + Grafana + node_exporter + cAdvisor</li>
         <li>Relational Database Design & Back-office Auth System</li>
       </ul>
     </div>
     <div class="showcase__meta">
-      <a href="http://15.135.71.60" class="showcase__link" target="_blank">Live Demo</a>
+      <a href="https://lovelypet.diffan.dev" class="showcase__link" target="_blank">Live Demo</a>
       <a href="https://github.com/whiznuri/aws-devops-resume-stack" class="showcase__link" target="_blank">GitHub Repo</a>
+      <a href="https://hub.docker.com/repositories/whiznuri363924an" class="showcase__link" target="_blank">Docker Hub</a>
     </div>
   </article>
 </section>
