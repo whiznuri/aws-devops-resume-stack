@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   web-resume:
-    image: whiznuri363924an/web-resume-app:v1.0
+    image: whiznuri363924an/web-resume-app:latest
     container_name: web-resume-app
     ports:
       - "8080:80"
     restart: always
 
   lovelypet:
-    image: whiznuri363924an/lovelypet-app:v1.0
+    image: whiznuri363924an/lovelypet-app:latest
     container_name: lovelypet-app
     ports:
       - "8001:80"
