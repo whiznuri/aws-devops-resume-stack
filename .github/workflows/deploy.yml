@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 2: Build และ Push Image web-resume ตัวใหม่ขึ้น Docker Hub
+      # Step 2: Build และ Push Image web-resume
       - name: Build and Push Web Resume Image
         uses: docker/build-push-action@v5
         with:
@@ -31,7 +31,18 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:v1.0
             ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:latest
 
-      # Step 3: SSH เข้า EC2 เพื่อ Pull Image ใหม่และ Re-create Container
+      # Step 3: Build และ Push Image lovelypet ตัวใหม่
+      - name: Build and Push LovelyPet Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/lovelypet
+          file: ./apps/lovelypet/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:v1.0
+            ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest
+
+      # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy ทั้ง 2 แอป
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -41,6 +52,7 @@ jobs:
           script: |
             cd ~/aws-devops-resume-stack
             git pull origin main
-            docker compose pull web-resume
-            docker compose up -d --force-recreate web-resume
+            docker compose pull web-resume lovelypet
+            docker compose up -d --force-recreate --remove-orphans web-resume lovelypet
+            docker exec nginx-proxy nginx -s reload
             docker image prune -f
