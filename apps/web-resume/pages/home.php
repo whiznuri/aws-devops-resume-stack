@@ -100,7 +100,7 @@ $education = [
     'major' => 'Information Technology',
     'institution' => 'Thai-Nichi Institute of Technology (TNI)',
     'period' => '2024 – 2026',
-    'gpa' => 'GPAX 3.64'
+    'gpa' => 'GPAX 3.68'
   ],
   [
     'degree' => 'High Vocational Certificate (ปวส.)',
