@@ -141,3 +141,24 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# ====== เพิ่มต่อท้าย .gitignore เดิม — Terraform & Secrets ======
+# (.gitignore เดิมเป็น Node.js template กัน node_modules ได้ดี แต่ไม่ครอบคลุมส่วนนี้เลย)
+
+# Terraform — ต้องกัน ไม่งั้น AWS Account ID + resource ID หลุด
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+.terraform/
+*.tfvars
+crash.log
+# หมายเหตุ: .terraform.lock.hcl ไม่ต้อง ignore — ควร commit ไว้
+
+# SSH Keys / Credentials
+*.pem
+*.key
+credentials.json
+aws-credentials*
+
+# Docker override (มักมี password จริง)
+docker-compose.override.yml
