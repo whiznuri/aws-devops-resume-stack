@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: web-resume
-        image: docker.io/whiznuri/web-resume-app:latest
+        image: docker.io/whiznuri363924an/web-resume-app:latest
         ports:
         - containerPort: 80
         resources:
