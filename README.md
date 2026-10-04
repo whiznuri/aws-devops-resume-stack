@@ -1,19 +1,22 @@
 # AWS End-to-End DevOps Resume & Monitoring Stack
 
-A self-hosted, containerized resume and portfolio platform built to demonstrate practical DevOps skills — from infrastructure provisioning to CI/CD automation and observability — using a real production-style deployment on AWS.
+A self-hosted, containerized resume and portfolio platform on AWS. I built it to practice infrastructure as code, CI/CD and observability on a real deployment, using a single EC2 instance on the AWS Free Tier.
 
-Built by **Anuphan "Diff" Natee**, transitioning from 15 years of Network Operations / Field Instrumentation into DevOps & Cloud Infrastructure.
+Built by **Anuphan "Diff" Natee**, moving into DevOps after about 15 years in field instrumentation and fiber/network infrastructure.
+
+Live: [diffan.dev](https://diffan.dev) · [lovelypet.diffan.dev](https://lovelypet.diffan.dev) · [grafana.diffan.dev](https://grafana.diffan.dev)
+
+This is a learning project, not a production-grade setup: one instance, no high availability, and a list of known gaps at the end of this file.
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture
 
-- **Infrastructure as Code (IaC):** Terraform — provisions the EC2 instance, Security Group, and Elastic IP (single-instance by design, to keep AWS Free Tier costs predictable)
-- **Hosting:** AWS EC2 (Ubuntu)
-- **Containerization:** Docker & Docker Compose
-- **Reverse Proxy & TLS:** Nginx reverse proxy routing multiple subdomains, HTTPS via Let's Encrypt / Certbot, with automated certificate renewal
-- **CI/CD:** GitHub Actions — build → push to Docker Hub → automated deployment for both applications
-- **Observability:** Prometheus & Grafana, with `node_exporter` (host metrics) and `cAdvisor` (container metrics)
+- **Infrastructure as Code:** Terraform provisions the EC2 instance (t3.micro, Ubuntu), Security Group, Elastic IP and a 30 GB root volume. Single instance by design, to keep Free Tier costs predictable.
+- **Runtime:** Docker Compose runs Nginx, two PHP apps, MySQL 8, Prometheus, Grafana, node_exporter and cAdvisor.
+- **Reverse proxy and TLS:** Nginx routes three subdomains. HTTPS uses Let's Encrypt; Certbot runs on the host with the webroot challenge.
+- **CI/CD:** GitHub Actions builds both app images on every push to `main`, pushes them to Docker Hub, then deploys to EC2 over SSH.
+- **Observability:** Prometheus and Grafana, with `node_exporter` (host metrics) and `cAdvisor` (container metrics).
 
 ```
                  ┌─────────────────┐
@@ -33,68 +36,95 @@ Built by **Anuphan "Diff" Natee**, transitioning from 15 years of Network Operat
                  └──────────────────────────────────────────────────────┘
 ```
 
----
-
-## 📁 Directory Structure
+## Repository structure
 
 ```text
 aws-devops-resume-stack/
-├── .github/
-│   └── workflows/          # CI/CD: build, push to Docker Hub, deploy (both apps)
-├── terraform/               # IaC: EC2, Security Group, Elastic IP
+├── .github/workflows/     # CI/CD: build, push to Docker Hub, deploy (both apps)
+├── terraform/             # IaC: EC2, Security Group, Elastic IP
 │   ├── main.tf
 │   ├── variables.tf
 │   └── outputs.tf
 ├── apps/
-│   ├── web-resume/          # PHP web resume (this site)
-│   └── lovelypet/            # PHP + MySQL full-stack app
-├── nginx/                   # Reverse proxy config, subdomain routing, SSL
-├── docker-compose.yml
-└── monitoring/
-    ├── prometheus.yml        # Scrape config (node_exporter, cAdvisor)
-    └── grafana/               # Dashboard provisioning
+│   ├── web-resume/        # PHP web resume
+│   └── lovelypet/         # PHP + MySQL app
+├── nginx/                 # Reverse proxy config and subdomain routing
+├── database/schema.sql    # MySQL schema for LovelyPet (loaded on first start)
+├── monitoring/
+│   └── prometheus.yml     # Scrape config (node_exporter, cAdvisor)
+├── archive/               # k3s / ArgoCD lab manifests (not deployed)
+└── docker-compose.yml
 ```
 
----
+The Grafana dashboard is the community "Node Exporter Full", imported by hand. It is not provisioned as code yet.
 
-## ✅ What's Implemented
+## What is implemented
 
-- [x] Infrastructure as Code: Terraform provisioning EC2, Security Group, Elastic IP
-- [x] Dockerized PHP applications (web resume + Lovely Pet)
-- [x] CI/CD pipeline: push to `main` → GitHub Actions builds & pushes both app images to Docker Hub → automated deployment
+- [x] Terraform: EC2, Security Group, Elastic IP, 30 GB root volume
+- [x] Dockerized PHP applications (web resume and LovelyPet)
+- [x] CI/CD: push to `main` → build both images → Docker Hub → SSH deploy (`compose pull`, recreate, Nginx reload, image prune). There is no approval step, so every push to `main` deploys.
 - [x] Nginx reverse proxy with multi-subdomain routing
-- [x] HTTPS across all services via Let's Encrypt / Certbot
-- [x] Automated SSL renewal via cron (checks and renews monthly, reloads Nginx automatically)
-- [x] Prometheus + Grafana monitoring with `node_exporter` (host metrics) and `cAdvisor` (container metrics)
+- [x] HTTPS via Let's Encrypt / Certbot
+- [x] Certificate renewal via cron (monthly check, Nginx reload)
+- [x] Prometheus and Grafana with `node_exporter` and `cAdvisor`
 
-## 🧯 Real Incidents Resolved
+## Kubernetes lab (k3s + ArgoCD), 4 Oct 2026
 
-Operational issues hit and fixed during development — kept here as a record of hands-on troubleshooting, not just a feature list:
+**Goal:** try Kubernetes and pull-based CD (GitOps) with this stack.
 
-- **Nginx `502 Bad Gateway` after container recreation** — Docker assigns a new internal IP each time a container is recreated, so the reverse proxy held a stale upstream IP. Fixed by reloading Nginx (`nginx -s reload`) immediately after every deployment to force a DNS re-resolution.
-- **EC2 disk full, causing Docker builds to hang** — Cleared unused images/containers (`docker image prune -f`) to restore build capacity; a recurring maintenance step to watch on a small Free Tier instance.
-- **CI/CD only building one of two apps** — The original pipeline only built `web-resume`, so `lovelypet` had no `:latest` image on Docker Hub and deployment failed. Restructured `deploy.yml` to build and push both apps explicitly, then deploy only those two services with `--remove-orphans`.
+**Setup:** single-node k3s installed on the same t3.micro (914 MiB RAM) that serves the site. That was a mistake I will not repeat: see the takeaways.
 
-## 🛣️ Roadmap
+| Step | Outcome |
+|---|---|
+| k3s single-node cluster | Node `Ready` |
+| `web-resume` as Deployment + Service (requests 50m / 64Mi, limits 100m / 128Mi) | `Running 1/1` after fixing the image reference |
+| `ImagePullBackOff` on first apply | Events showed `pull access denied`. Cause: wrong Docker Hub username in the manifest. Fixed in commit `d30cb87` |
+| ArgoCD install | **Not completed.** API server timeouts and pod restarts (13 to 18) under memory pressure. The Application resource was created but never reached `Synced` |
 
-- [ ] Grafana Alerting → Telegram/LINE notifications on high CPU/RAM or container downtime
-- [ ] Multi-node infrastructure (ephemeral, spun up on demand) for orchestration practice
+**Decision:** stop and disable k3s, delete the `argocd` namespace, and keep Docker Compose as the only runtime. The lab manifests are kept in `archive/`.
 
----
+**Takeaways**
+- The k3s server process alone used about 450 MB of the 914 MiB available. A control plane plus ArgoCD needs more headroom than this instance has.
+- Experiments should run on a separate instance or locally, not on the host that serves the live site.
+- Stopping a service is not the same as cleaning up its network state (see incident 4).
+- ArgoCD sync is still unverified. I plan to retry on a larger temporary instance or a local cluster.
+- The lab also left images and data on disk (root volume usage went from about 34% to about 50%). Cleanup with `k3s-uninstall.sh` is pending.
 
-## 🎯 Why This Project
+## Real incidents resolved
 
-This stack isn't a tutorial clone — it's built to mirror how a real small-to-mid-size engineering team ships and operates software: infrastructure as code, containerized services, automated builds, and visibility into what's running. It's a deliberate bridge between 15 years of hands-on infrastructure/network operations and modern cloud-native DevOps practice.
+Problems hit and fixed during development, kept as a record of troubleshooting rather than a feature list.
 
----
+1. **Nginx `502 Bad Gateway` after container recreation.** Docker assigns a new internal IP whenever a container is recreated. Nginx resolves upstream names when it loads its config, so it kept the stale IP. Fixed by reloading Nginx after every deployment. A more robust option (runtime DNS re-resolution in Nginx) is not implemented yet.
+2. **EC2 disk full, causing Docker builds to hang.** The default 8 GB root volume filled up with Docker images. Cleared unused images with `docker image prune -f` (now run on every deploy) and increased the root volume to 30 GB in Terraform.
+3. **CI/CD only building one of two apps.** The original pipeline built only `web-resume`, so `lovelypet` had no image on Docker Hub and the deployment failed. Restructured `deploy.yml` to build and push both apps and deploy only those two services with `--remove-orphans`.
+4. **External HTTP/HTTPS timeouts after stopping k3s (4 Oct 2026).** All containers were `Up` and `curl localhost` worked, and the application ports were reachable from outside, but ports 80 and 443 timed out. Probable cause, inferred from the symptoms and the fix: network rules left behind by k3s (its bundled Traefik/ServiceLB publishes ports 80 and 443 on the host) were still intercepting traffic. Fixed by running `k3s-killall.sh`, restarting Docker and running `docker compose up -d`; the site was then reachable again. I did not capture packets, so the cause is not confirmed. Full write-up: [`docs/incidents/2026-10-04-k3s-iptables.md`](docs/incidents/2026-10-04-k3s-iptables.md).
 
-## ⚠️ Repository Hygiene Notes
+## Known limitations and planned work
 
-This repo intentionally excludes Terraform state files (`*.tfstate`), `.terraform/`, and any credential files — see `.gitignore`. State files contain live AWS account and resource identifiers and should never be committed to a public repository.
+**Pipeline**
+- No tests or image scanning. Tags `v1.0` and `latest` are overwritten on every run, so a rollback means reverting the commit and rebuilding. Planned: commit-SHA tags, Trivy scan with a failing threshold, an approval step, and rollback by redeploying an earlier tag.
+- Push-based deploy over SSH, with a third-party Action pinned by tag rather than commit SHA. Planned: pull-based CD (ArgoCD) and pinning by SHA.
 
----
+**Infrastructure**
+- Terraform state is local, there are no modules or separate environments, and the AMI is selected with `most_recent`. `user_data` is empty, so software on the instance was installed by hand. Planned: remote state with locking, a pinned AMI, and cloud-init or Ansible for configuration.
+- Single instance with about 80% RAM used (swap in use but stable). Planned: more headroom, or a multi-AZ design if it ever needed to scale.
 
-## 📬 Contact
+**Security hardening**
+- SSH is open to the internet because CI connects over SSH. Ports 3000, 8080 and 9091 are published although Nginx already serves these apps. Planned: SSM or pull-based deploy, close the redundant ports.
+- IMDSv1 is still allowed and the root volume is not encrypted.
+- `docker-compose.yml` contains sample credentials for the demo database. CI credentials are stored as GitHub Secrets. Planned: move database credentials to an untracked `.env` or a secret manager.
+
+**Observability**
+- No alert rules and no application-level metrics (error rate, latency). Planned: Grafana Alerting to Telegram/LINE, plus an external uptime check, since an outside-in check would have caught incident 4 immediately.
+- `node_exporter` runs in a container without host mounts, so its root-filesystem and network panels describe the container, not the host. CPU, memory and vmstat panels are host-level.
+- No log or trace pipeline. Planned: Loki and OpenTelemetry.
+
+## Repository notes
+
+- Terraform state files (`*.tfstate`) and `.terraform/` are excluded through `.gitignore`.
+- Pushes to `main` trigger a deployment. Documentation-only commits can include `[skip ci]` in the message to avoid redeploying.
+
+## Contact
 
 - Email: anuphan.natee@hotmail.com
 - Phone: 096-393-5939
