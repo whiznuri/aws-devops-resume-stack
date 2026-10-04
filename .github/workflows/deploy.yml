@@ -42,6 +42,31 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:v1.0
             ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest
 
+      # =========================================================
+      # DevSecOps & Security Compliance: Trivy SBOM Generation
+      # =========================================================
+      - name: Generate SBOM for Web Resume (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:latest'
+          format: 'cyclonedx'
+          output: 'web-resume-sbom.json'
+
+      - name: Generate SBOM for LovelyPet (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest'
+          format: 'cyclonedx'
+          output: 'lovelypet-sbom.json'
+
+      - name: Upload SBOM Artifacts to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: software-bill-of-materials
+          path: |
+            web-resume-sbom.json
+            lovelypet-sbom.json
+
       # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy ทั้ง 2 แอป
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
