@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-resume-deployment
+  labels:
+    app: web-resume
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-resume
+  template:
+    metadata:
+      labels:
+        app: web-resume
+    spec:
+      containers:
+      - name: web-resume
+        image: docker.io/whiznuri/web-resume-app:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-resume-service
+spec:
+  type: ClusterIP
+  selector:
+    app: web-resume
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
