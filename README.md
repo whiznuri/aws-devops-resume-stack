@@ -14,7 +14,7 @@ This is a learning project, not a production-grade setup: one instance, no high 
 
 - **Infrastructure as Code:** Terraform provisions the EC2 instance (t3.micro, Ubuntu), Security Group, Elastic IP and a 30 GB root volume. Single instance by design, to keep Free Tier costs predictable.
 - **Runtime:** Docker Compose runs Nginx, two PHP apps, MySQL 8, Prometheus, Grafana, node_exporter and cAdvisor.
-- **Reverse proxy and TLS:** Nginx routes three subdomains. HTTPS uses Let's Encrypt; Certbot runs on the host with the webroot challenge.
+- **Reverse proxy and TLS:** Nginx routes three subdomains. HTTPS uses Let's Encrypt; Certbot (installed as a snap) runs on the host with the webroot challenge and renews through its systemd timer.
 - **CI/CD:** GitHub Actions builds both app images on every push to `main`, pushes them to Docker Hub, then deploys to EC2 over SSH.
 - **Observability:** Prometheus and Grafana, with `node_exporter` (host metrics) and `cAdvisor` (container metrics).
 
@@ -65,7 +65,8 @@ The Grafana dashboard is the community "Node Exporter Full", imported by hand. I
 - [x] CI/CD: push to `main` → build both images → Docker Hub → SSH deploy (`compose pull`, recreate, Nginx reload, image prune). There is no approval step, so every push to `main` deploys.
 - [x] Nginx reverse proxy with multi-subdomain routing
 - [x] HTTPS via Let's Encrypt / Certbot
-- [x] Certificate renewal via cron (monthly check, Nginx reload)
+- [x] Certificate renewal via Certbot's systemd timer (snap), webroot challenge on port 80
+- [x] SBOM generation in CI: Trivy creates a CycloneDX SBOM for each image and uploads both as a GitHub Actions artifact (no vulnerability scan yet)
 - [x] Prometheus and Grafana with `node_exporter` and `cAdvisor`
 
 ## Kubernetes lab (k3s + ArgoCD), 4 Oct 2026
@@ -102,8 +103,8 @@ Problems hit and fixed during development, kept as a record of troubleshooting r
 ## Known limitations and planned work
 
 **Pipeline**
-- No tests or image scanning. Tags `v1.0` and `latest` are overwritten on every run, so a rollback means reverting the commit and rebuilding. Planned: commit-SHA tags, Trivy scan with a failing threshold, an approval step, and rollback by redeploying an earlier tag.
-- Push-based deploy over SSH, with a third-party Action pinned by tag rather than commit SHA. Planned: pull-based CD (ArgoCD) and pinning by SHA.
+- No tests or vulnerability scanning (SBOMs are generated but not scanned or used as a gate). Tags `v1.0` and `latest` are overwritten on every run, so a rollback means reverting the commit and rebuilding. Planned: commit-SHA tags, a Trivy vulnerability scan with a failing threshold, an approval step, and rollback by redeploying an earlier tag.
+- Push-based deploy over SSH. Third-party Actions are pinned by tag or branch (`appleboy/ssh-action@v1.0.3`, `aquasecurity/trivy-action@master`) rather than commit SHA. Planned: pull-based CD (ArgoCD) and pinning by SHA.
 
 **Infrastructure**
 - Terraform state is local, there are no modules or separate environments, and the AMI is selected with `most_recent`. `user_data` is empty, so software on the instance was installed by hand. Planned: remote state with locking, a pinned AMI, and cloud-init or Ansible for configuration.
@@ -118,6 +119,9 @@ Problems hit and fixed during development, kept as a record of troubleshooting r
 - No alert rules and no application-level metrics (error rate, latency). Planned: Grafana Alerting to Telegram/LINE, plus an external uptime check, since an outside-in check would have caught incident 4 immediately.
 - `node_exporter` runs in a container without host mounts, so its root-filesystem and network panels describe the container, not the host. CPU, memory and vmstat panels are host-level.
 - No log or trace pipeline. Planned: Loki and OpenTelemetry.
+
+**TLS**
+- Certificates renew automatically, but no Certbot deploy hook reloads Nginx afterwards. Nginx picks up a renewed certificate on the next deploy, which reloads it. Planned: a deploy hook that runs `docker exec nginx-proxy nginx -s reload`.
 
 ## Repository notes
 
