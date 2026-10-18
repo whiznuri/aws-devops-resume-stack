@@ -9,8 +9,8 @@ $journey = [
     'note' => 'ผสานประสบการณ์ OT/Network 15 ปี สู่ Enterprise Automation & AWS Infrastructure',
     'details' => [
       'responsibilities' => 'ออกแบบและปรับปรุงสถาปัตยกรรม Web Platform, Automation Workflow และ Cloud Deployment สำหรับระบบงานจริง',
-      'achievements' => 'สร้าง Modular PHP Portfolio บน AWS EC2 คอนฟิก Clean Router ซ่อน Hash URL ด้วย Vanilla JS และวางระบบ Database-backed Architecture',
-      'tools' => 'AWS EC2 (Ubuntu), Apache mod_rewrite, PHP 8+, Pure CSS, Git, Docker Container Basics'
+      'achievements' => 'สร้างและดูแลเว็บนี้บน AWS EC2 ด้วย Terraform, Docker Compose และ CI/CD จริง, สร้าง AWS Landing Zone 5 บัญชีด้วย Terraform + Terragrunt + GitLab CI และแอป Android (Kotlin) พร้อมเอกสารและหลักฐานการทดสอบ (ดู Project Showcase)',
+      'tools' => 'AWS (Organizations, ECS, ALB, Aurora, EC2), Terraform / OpenTofu, Terragrunt, GitLab CI, GitHub Actions, Docker, Prometheus / Grafana, Kotlin, PHP 8+'
     ]
   ],
   [
@@ -80,17 +80,77 @@ $skills_4d = [
     'Power BI (DAX, Data Modeling)', 'Looker Studio Interactive Dashboards',
     'Python & Excel VBA Log Analytics ETL'
   ],
-  'Cloud, DevOps & Software' => [
-    'AWS EC2 & Linux System Admin (Ubuntu)',
-    'Infrastructure as Code (Terraform) — EC2, Security Group, Elastic IP',
-    'Docker Containerization (Dockerfile, Docker Compose)',
-    'CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment)',
-    'Nginx Reverse Proxy & Multi-domain Routing',
-    'SSL/TLS Certificate Management (Let\'s Encrypt / Certbot)',
-    'Monitoring & Observability (Prometheus, Grafana, node_exporter, cAdvisor)',
+  'Cloud & DevOps' => [
+    'AWS Multi-Account: Organizations, SCP, RAM Shared VPC, Transit Gateway',
+    'Infrastructure as Code: Terraform / OpenTofu + Terragrunt (layered, per environment)',
+    'CI/CD: GitLab CI (OIDC, plan → manual approve → apply), GitHub Actions',
+    'Containers: AWS ECS on EC2 (awsvpc, per-task security groups), Docker & Docker Compose',
+    'AWS Services: EC2, ALB, Aurora Serverless v2, S3, VPC Endpoints, Systems Manager',
+    'Security: GuardDuty, Security Hub, Macie (delegated admin), checkov IaC scanning',
+    'Monitoring: CloudWatch Alarms + SNS, Prometheus, Grafana, node_exporter, cAdvisor',
+    'SBOM in CI (Trivy, CycloneDX); Kubernetes lab: k3s Deployment/Service, ArgoCD attempt + incident write-up',
+    'Nginx Reverse Proxy, Multi-domain HTTPS (Let\'s Encrypt / Certbot)',
+    'Linux System Admin (Ubuntu), Git / GitHub / GitLab'
+  ],
+  'Software & Mobile' => [
+    'Android: Kotlin, Jetpack Compose, Material3',
+    'MVVM: ViewModel, StateFlow, SavedStateHandle',
+    'Maps & Location: osmdroid (OpenStreetMap), Fused Location, Haversine',
     'Modular PHP & MySQL Relational DB',
-    'Git / GitHub Version Control Workflows'
+    'Technical Writing: README, Architecture Decisions, Test Evidence'
   ]
+];
+
+// ข้อมูลโปรเจกต์ (ลิงก์ Live Demo ไม่ชี้กลับมาหน้าตัวเอง)
+$projects = [
+  [
+    'title' => 'AWS Multi-Account Landing Zone — Terraform + Terragrunt + GitLab CI',
+    'summary' => 'งานทดสอบ (take-home) ตำแหน่ง DevOps Engineer: สร้างโครงสร้าง AWS 5 บัญชีตามแผนภาพที่ได้รับ ด้วย IaC ทั้งหมด แล้ว apply จริงผ่าน pipeline ทดสอบ และ destroy กลับจนหมด พร้อมเอกสารบันทึกหลักฐานและข้อจำกัดอย่างตรงไปตรงมา',
+    'facts' => [
+      '5 บัญชีใน AWS Organizations: Management, Security, Network, Prod, Nonprod',
+      'Shared VPC ผ่าน AWS RAM + Transit Gateway แยก prod / nonprod',
+      'ECS on EC2 แบบ awsvpc: 10 แอปใน 6 security groups ตามแผนภาพ, ALB แยก path, Aurora Serverless v2',
+      'GitLab CI แบบ OIDC (ไม่มี access key ค้าง): check → checkov scan → plan → อนุมัติด้วยมือ → apply',
+      'CloudWatch Alarms 4 ชนิด ส่งอีเมลผ่าน SNS ทดสอบยิงจริงครบ ทั้ง ALARM และ OK',
+      'หาสาเหตุ ECS ค้าง DRAINING ตอน destroy จาก log และแก้ด้วยลำดับ dependency ใน Terraform',
+    ],
+    'links' => [
+      'GitLab Repo' => 'https://gitlab.com/whiznuri/aws-landing-zone',
+      'Demo Video' => 'https://youtu.be/_pETr658fA4',
+    ],
+  ],
+  [
+    'title' => 'Diff\'s Journey — Android Portfolio App with Map',
+    'summary' => 'แอป Android แนะนำตัวผ่านตัวละครทามาก็อตจิที่เปลี่ยนรูปตาม 13 หมุดชีวิต แต่ละหมุดผูกกับสถานที่จริงบนแผนที่ในแอป วัดระยะจากตำแหน่งผู้ใช้ และส่งต่อไป Google Maps เพื่อนำทาง',
+    'facts' => [
+      'Kotlin + Jetpack Compose, สถาปัตยกรรม MVVM (ViewModel, StateFlow, SavedStateHandle)',
+      'แผนที่ osmdroid (OpenStreetMap) ไม่ต้องใช้ API key: Marker 13 หมุด + เส้น timeline',
+      'ขอเฉพาะตำแหน่งโดยประมาณ (least privilege) คำนวณระยะด้วย Haversine ปฏิเสธสิทธิ์แล้วยังใช้งานต่อได้',
+      'ตรวจเครือข่ายก่อนเปิดแผนที่, รองรับจอเล็กและฟอนต์ใหญ่, state รอดการสร้าง Activity ใหม่',
+      'เอกสาร Concept, Flow diagram และตารางผลทดสอบบน emulator',
+    ],
+    'links' => [
+      'GitLab Repo' => 'https://gitlab.com/whiznuri/DiffsJourney',
+      'Demo Video' => 'https://youtu.be/bJqvqsokXXw',
+    ],
+  ],
+  [
+    'title' => 'Lovely Pet — Full-Stack App on a Self-Managed AWS Cloud Stack',
+    'summary' => 'ระบบ Web Application บริหารจัดการข้อมูลสัตว์เลี้ยงแบบ Full-Stack รันอยู่บน AWS EC2 ที่ provision ด้วย Terraform (IaC) พร้อม CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment), Nginx Reverse Proxy พร้อม HTTPS หลาย subdomain และ Monitoring Stack ที่ทำงานอยู่จริง',
+    'facts' => [
+      'Infrastructure as Code: Terraform provisioning EC2, Security Group, Elastic IP',
+      'CI/CD: Push code → Auto build & push image ขึ้น Docker Hub → Deploy อัตโนมัติ',
+      'Nginx Reverse Proxy + Multi-domain HTTPS (Let\'s Encrypt)',
+      'Monitoring: Prometheus + Grafana + node_exporter + cAdvisor',
+      'Relational Database Design & Back-office Auth System',
+      'SBOM ของทุก image ใน CI (Trivy, CycloneDX) และบันทึก incident จริง เช่น ทดลอง k3s แล้วพอร์ต 80/443 ใช้ไม่ได้',
+    ],
+    'links' => [
+      'Live Demo' => 'https://lovelypet.diffan.dev',
+      'GitHub Repo' => 'https://github.com/whiznuri/aws-devops-resume-stack',
+      'Docker Hub' => 'https://hub.docker.com/repositories/whiznuri363924an',
+    ],
+  ],
 ];
 
 // ข้อมูลการศึกษา
@@ -201,31 +261,27 @@ $education = [
   </div>
 </section>
 
-<!-- Project Showcase — Live Demo ชี้ไปที่ Lovely Pet เท่านั้น (ไม่ชี้กลับมาหน้าตัวเอง) -->
+<!-- Project Showcase — ข้อมูลอยู่ใน $projects ด้านบน (Live Demo ไม่ชี้กลับมาหน้าตัวเอง) -->
 <section id="work" class="showcase">
   <h2 class="section-title">Project Showcase</h2>
+  <?php foreach ($projects as $project): ?>
   <article class="showcase__card">
     <div class="showcase__text">
-      <h3>Lovely Pet — Full-Stack App on a Self-Managed AWS Cloud Stack</h3>
-      <p>
-        ระบบ Web Application บริหารจัดการข้อมูลสัตว์เลี้ยงแบบ Full-Stack รันอยู่บน AWS EC2 ที่ provision
-        ด้วย Terraform (IaC) พร้อม CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment),
-        Nginx Reverse Proxy พร้อม HTTPS หลาย subdomain และ Monitoring Stack ที่ทำงานอยู่จริง
-      </p>
+      <h3><?= htmlspecialchars($project['title']) ?></h3>
+      <p><?= htmlspecialchars($project['summary']) ?></p>
       <ul class="showcase__facts">
-        <li>Infrastructure as Code: Terraform provisioning EC2, Security Group, Elastic IP</li>
-        <li>CI/CD: Push code → Auto build & push image ขึ้น Docker Hub → Deploy อัตโนมัติ</li>
-        <li>Nginx Reverse Proxy + Multi-domain HTTPS (Let's Encrypt)</li>
-        <li>Monitoring: Prometheus + Grafana + node_exporter + cAdvisor</li>
-        <li>Relational Database Design & Back-office Auth System</li>
+        <?php foreach ($project['facts'] as $fact): ?>
+          <li><?= htmlspecialchars($fact) ?></li>
+        <?php endforeach; ?>
       </ul>
     </div>
     <div class="showcase__meta">
-      <a href="https://lovelypet.diffan.dev" class="showcase__link" target="_blank">Live Demo</a>
-      <a href="https://github.com/whiznuri/aws-devops-resume-stack" class="showcase__link" target="_blank">GitHub Repo</a>
-      <a href="https://hub.docker.com/repositories/whiznuri363924an" class="showcase__link" target="_blank">Docker Hub</a>
+      <?php foreach ($project['links'] as $label => $url): ?>
+        <a href="<?= htmlspecialchars($url) ?>" class="showcase__link" target="_blank" rel="noopener"><?= htmlspecialchars($label) ?></a>
+      <?php endforeach; ?>
     </div>
   </article>
+  <?php endforeach; ?>
 </section>
 
 <!-- Contact Section -->
