@@ -98,6 +98,7 @@ $skills_4d = [
     'MVVM: ViewModel, StateFlow, SavedStateHandle',
     'Maps & Location: osmdroid (OpenStreetMap), Fused Location, Haversine',
     'PHP 8 (PDO) & MySQL: relational design, transactions, row locking (SELECT … FOR UPDATE)',
+    'REST API (PHP): JSON, HTTP status codes (2xx / 4xx / 5xx), stateless, input validation',
     'Technical Writing: README, Architecture Decisions, Test Evidence'
   ]
 ];
