@@ -1,0 +1,10 @@
+# ไม่เอาเข้า image
+.git
+.env
+docker-compose.yml
+Dockerfile
+.dockerignore
+database/
+deploy/
+*.md
+admin/setup.php

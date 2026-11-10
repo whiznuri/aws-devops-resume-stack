@@ -42,6 +42,17 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:v1.0
             ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest
 
+      # Step 3.5: Build และ Push Image ministock (Mini Shopping)
+      - name: Build and Push Ministock Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/ministock
+          file: ./apps/ministock/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:v1.0
+            ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:latest
+
       # =========================================================
       # DevSecOps & Security Compliance: Trivy SBOM Generation
       # =========================================================
@@ -59,6 +70,13 @@ jobs:
           format: 'cyclonedx'
           output: 'lovelypet-sbom.json'
 
+      - name: Generate SBOM for Ministock (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:latest'
+          format: 'cyclonedx'
+          output: 'ministock-sbom.json'
+
       - name: Upload SBOM Artifacts to GitHub
         uses: actions/upload-artifact@v4
         with:
@@ -66,8 +84,9 @@ jobs:
           path: |
             web-resume-sbom.json
             lovelypet-sbom.json
+            ministock-sbom.json
 
-      # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy ทั้ง 2 แอป
+      # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy ทั้ง 3 แอป
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -75,9 +94,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e   # คำสั่งไหนพัง หยุดทันที + CI ขึ้นแดง (เดิมพังกลางทางแล้วยังเขียว)
             cd ~/aws-devops-resume-stack
             git pull origin main
-            docker compose pull web-resume lovelypet
-            docker compose up -d --force-recreate --remove-orphans web-resume lovelypet
+            docker compose pull web-resume lovelypet ministock
+            docker compose up -d --force-recreate --remove-orphans web-resume lovelypet ministock
+            # ทดสอบ config ก่อน reload: ถ้า config ผิด nginx ตัวเดิมยังรันต่อ เว็บไม่ล่ม
+            docker exec nginx-proxy nginx -t
             docker exec nginx-proxy nginx -s reload
-            docker image prune -f
+            docker image prune -f

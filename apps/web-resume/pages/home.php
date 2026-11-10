@@ -96,13 +96,28 @@ $skills_4d = [
     'Android: Kotlin, Jetpack Compose, Material3',
     'MVVM: ViewModel, StateFlow, SavedStateHandle',
     'Maps & Location: osmdroid (OpenStreetMap), Fused Location, Haversine',
-    'Modular PHP & MySQL Relational DB',
+    'PHP 8 (PDO) & MySQL: relational design, transactions, row locking (SELECT … FOR UPDATE)',
     'Technical Writing: README, Architecture Decisions, Test Evidence'
   ]
 ];
 
 // ข้อมูลโปรเจกต์ (ลิงก์ Live Demo ไม่ชี้กลับมาหน้าตัวเอง)
 $projects = [
+  [
+    'title' => 'Mini Shopping — PHP + MySQL E-commerce with Transactional Stock',
+    'summary' => 'ร้านค้าออนไลน์ขนาดเล็กเขียนด้วย PHP 8 (PDO) + MySQL มีทั้งหน้าร้าน (สมัครสมาชิก ตะกร้า สั่งซื้อ ประวัติออเดอร์) และหลังบ้าน (จัดการสินค้า สต็อก รายงานยอดขาย) เน้นความถูกต้องของข้อมูลเมื่อมีคนสั่งพร้อมกัน แล้ว deploy เป็นแอปที่ 3 ใน pipeline เดียวกับเว็บนี้',
+    'facts' => [
+      'ตะกร้า → 1 ออเดอร์หลายรายการ ออกแบบแบบ header/detail (orders / order_items) และเก็บราคา ณ วันที่สั่ง',
+      'ตัดสต็อกใน transaction เดียวด้วย SELECT … FOR UPDATE ล็อกแถวเรียงตาม id ลดโอกาส deadlock — ชิ้นไหนไม่พอ rollback ทั้งออเดอร์',
+      'หลังบ้าน: รับของเข้าแบบบวกเพิ่ม (stock = stock + ?) กัน lost update, ระงับการขายแทนการลบ (soft delete), รายงานยอดขาย LEFT JOIN + GROUP BY',
+      'Security: prepared statements, password_hash (bcrypt), session_regenerate_id, escape output กัน XSS, DB user มีสิทธิ์แค่ SELECT / INSERT / UPDATE',
+      'Deploy: GitHub Actions → Docker Hub → EC2, Nginx resolve ชื่อ container ตอน request ถ้าแอปล่มจะกระทบแค่ /shop ไม่ลากเว็บอื่น',
+    ],
+    'links' => [
+      'Live Demo' => 'https://diffan.dev/shop/',
+      'Source' => 'https://github.com/whiznuri/aws-devops-resume-stack/tree/main/apps/ministock',
+    ],
+  ],
   [
     'title' => 'AWS Multi-Account Landing Zone — Terraform + Terragrunt + GitLab CI',
     'summary' => 'งานทดสอบ (take-home) ตำแหน่ง DevOps Engineer: สร้างโครงสร้าง AWS 5 บัญชีตามแผนภาพที่ได้รับ ด้วย IaC ทั้งหมด แล้ว apply จริงผ่าน pipeline ทดสอบ และ destroy กลับจนหมด พร้อมเอกสารบันทึกหลักฐานและข้อจำกัดอย่างตรงไปตรงมา',

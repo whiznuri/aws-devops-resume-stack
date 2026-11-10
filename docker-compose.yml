@@ -17,6 +17,19 @@ services:
       - database
     restart: always
 
+  ministock:
+    image: whiznuri363924an/ministock-app:latest
+    container_name: ministock
+    environment:
+      DB_HOST: database
+      DB_NAME: ministock
+      DB_USER: ministock_app
+      DB_PASS: ${MINISTOCK_DB_PASS}
+    depends_on:
+      - database
+    mem_limit: 128m
+    restart: always
+    
   database:
     image: mysql:8.0
     container_name: mysql-db
