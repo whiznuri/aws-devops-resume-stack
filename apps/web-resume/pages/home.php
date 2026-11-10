@@ -9,8 +9,8 @@ $journey = [
     'note' => 'ผสานประสบการณ์ OT/Network 15 ปี สู่ Enterprise Automation & AWS Infrastructure',
     'details' => [
       'responsibilities' => 'ออกแบบและปรับปรุงสถาปัตยกรรม Web Platform, Automation Workflow และ Cloud Deployment สำหรับระบบงานจริง',
-      'achievements' => 'สร้างและดูแลเว็บนี้บน AWS EC2 ด้วย Terraform, Docker Compose และ CI/CD จริง, สร้าง AWS Landing Zone 5 บัญชีด้วย Terraform + Terragrunt + GitLab CI และแอป Android (Kotlin) พร้อมเอกสารและหลักฐานการทดสอบ (ดู Project Showcase)',
-      'tools' => 'AWS (Organizations, ECS, ALB, Aurora, EC2), Terraform / OpenTofu, Terragrunt, GitLab CI, GitHub Actions, Docker, Prometheus / Grafana, Kotlin, PHP 8+'
+      'achievements' => 'สร้างและดูแลเว็บนี้บน AWS EC2 ด้วย Terraform, Docker Compose และ CI/CD จริง, สร้าง AWS Landing Zone 5 บัญชีด้วย Terraform + Terragrunt + GitLab CI, แอป Android (Kotlin) และร้านค้าออนไลน์ Mini Shopping (PHP + MySQL) ที่ deploy เป็นแอปที่ 3 ใน pipeline เดียวกัน พร้อมเอกสารและหลักฐานการทดสอบ (ดู Project Showcase)',
+      'tools' => 'AWS (Organizations, ECS, ALB, Aurora, EC2), Terraform / OpenTofu, Terragrunt, GitLab CI, GitHub Actions, Docker, Prometheus / Grafana, Kotlin, PHP 8+, MySQL'
     ]
   ],
   [
@@ -89,7 +89,8 @@ $skills_4d = [
     'Security: GuardDuty, Security Hub, Macie (delegated admin), checkov IaC scanning',
     'Monitoring: CloudWatch Alarms + SNS, Prometheus, Grafana, node_exporter, cAdvisor',
     'SBOM in CI (Trivy, CycloneDX); Kubernetes lab: k3s Deployment/Service, ArgoCD attempt + incident write-up',
-    'Nginx Reverse Proxy, Multi-domain HTTPS (Let\'s Encrypt / Certbot)',
+    'Nginx Reverse Proxy: multi-domain HTTPS (Let\'s Encrypt / Certbot), path routing with runtime DNS resolve',
+    'App security on deploy: least-privilege DB user, secrets in .env (not in git), nginx -t before reload',
     'Linux System Admin (Ubuntu), Git / GitHub / GitLab'
   ],
   'Software & Mobile' => [
@@ -111,10 +112,12 @@ $projects = [
       'ตัดสต็อกใน transaction เดียวด้วย SELECT … FOR UPDATE ล็อกแถวเรียงตาม id ลดโอกาส deadlock — ชิ้นไหนไม่พอ rollback ทั้งออเดอร์',
       'หลังบ้าน: รับของเข้าแบบบวกเพิ่ม (stock = stock + ?) กัน lost update, ระงับการขายแทนการลบ (soft delete), รายงานยอดขาย LEFT JOIN + GROUP BY',
       'Security: prepared statements, password_hash (bcrypt), session_regenerate_id, escape output กัน XSS, DB user มีสิทธิ์แค่ SELECT / INSERT / UPDATE',
+      'REST API แบบอ่านอย่างเดียว ตอบ JSON พร้อม status code ที่ถูกต้อง (200 / 400 / 404 / 405 / 500) ภาษาไทยอ่านได้ ไม่ใช้ session (stateless)',
       'Deploy: GitHub Actions → Docker Hub → EC2, Nginx resolve ชื่อ container ตอน request ถ้าแอปล่มจะกระทบแค่ /shop ไม่ลากเว็บอื่น',
     ],
     'links' => [
       'Live Demo' => 'https://diffan.dev/shop/',
+      'API (JSON)' => 'https://diffan.dev/shop/api/products.php',
       'Source' => 'https://github.com/whiznuri/aws-devops-resume-stack/tree/main/apps/ministock',
     ],
   ],
