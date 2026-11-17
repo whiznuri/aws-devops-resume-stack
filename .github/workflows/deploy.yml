@@ -29,6 +29,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:v1.0
+            ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:latest
 
       # Step 3: Build และ Push Image lovelypet ตัวใหม่
@@ -40,6 +41,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:v1.0
+            ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest
 
       # Step 3.5: Build และ Push Image ministock (Mini Shopping)
@@ -51,6 +53,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:v1.0
+            ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:latest
 
       # =========================================================

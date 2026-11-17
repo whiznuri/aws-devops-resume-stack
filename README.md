@@ -2,7 +2,7 @@
 
 A self-hosted, containerized resume and portfolio platform on AWS. I built it to practice infrastructure as code, CI/CD and observability on a real deployment, using a single EC2 instance on the AWS Free Tier.
 
-Built by **Anuphan "Diff" Natee**, moving into DevOps after about 15 years in field instrumentation and fiber/network infrastructure.
+Built by **Anuphan "Diff" Natee**, moving into software development and DevOps after about 15 years in field instrumentation and fiber/network infrastructure.
 
 Live: [diffan.dev](https://diffan.dev) · [lovelypet.diffan.dev](https://lovelypet.diffan.dev) · [grafana.diffan.dev](https://grafana.diffan.dev)
 
@@ -13,9 +13,9 @@ This is a learning project, not a production-grade setup: one instance, no high 
 ## Architecture
 
 - **Infrastructure as Code:** Terraform provisions the EC2 instance (t3.micro, Ubuntu), Security Group, Elastic IP and a 30 GB root volume. Single instance by design, to keep Free Tier costs predictable.
-- **Runtime:** Docker Compose runs Nginx, two PHP apps, MySQL 8, Prometheus, Grafana, node_exporter and cAdvisor.
+- **Runtime:** Docker Compose runs Nginx, the web resume (Next.js), two PHP apps (LovelyPet and Mini Shopping), MySQL 8, Prometheus, Grafana, node_exporter and cAdvisor.
 - **Reverse proxy and TLS:** Nginx routes three subdomains. HTTPS uses Let's Encrypt; Certbot (installed as a snap) runs on the host with the webroot challenge and renews through its systemd timer.
-- **CI/CD:** GitHub Actions builds both app images on every push to `main`, pushes them to Docker Hub, then deploys to EC2 over SSH.
+- **CI/CD:** GitHub Actions builds all three app images on every push to `main`, tags them with the commit SHA (plus `latest`), pushes them to Docker Hub, then deploys to EC2 over SSH.
 - **Observability:** Prometheus and Grafana, with `node_exporter` (host metrics) and `cAdvisor` (container metrics).
 
 ```
@@ -32,7 +32,7 @@ This is a learning project, not a production-grade setup: one instance, no high 
                  │  └───────┬─────────────────┬─────────────────────┘   │
                  │          ▼                 ▼                         │
                  │   diffan.dev      lovelypet.diffan.dev   grafana.diffan.dev
-                 │   (PHP Resume)    (PHP + MySQL App)      (Prometheus + Grafana)
+                 │   (Next.js)       (PHP + MySQL App)      (Prometheus + Grafana)
                  └──────────────────────────────────────────────────────┘
 ```
 
@@ -40,19 +40,21 @@ This is a learning project, not a production-grade setup: one instance, no high 
 
 ```text
 aws-devops-resume-stack/
-├── .github/workflows/     # CI/CD: build, push to Docker Hub, deploy (both apps)
+├── .github/workflows/     # CI/CD: build, push to Docker Hub, deploy (three apps)
 ├── terraform/             # IaC: EC2, Security Group, Elastic IP
 │   ├── main.tf
 │   ├── variables.tf
 │   └── outputs.tf
 ├── apps/
-│   ├── web-resume/        # PHP web resume
-│   └── lovelypet/         # PHP + MySQL app
+│   ├── web-resume/        # Web resume — Next.js 16 (migrated from PHP, Nov 2026)
+│   ├── lovelypet/         # PHP + MySQL app
+│   └── ministock/         # Mini Shopping — PHP + MySQL shop at /shop/
 ├── nginx/                 # Reverse proxy config and subdomain routing
 ├── database/schema.sql    # MySQL schema for LovelyPet (loaded on first start)
 ├── monitoring/
 │   └── prometheus.yml     # Scrape config (node_exporter, cAdvisor)
-├── archive/               # k3s / ArgoCD lab manifests (not deployed)
+├── docs/                  # Incident write-ups and migration notes
+├── archive/               # Not deployed: k3s / ArgoCD lab manifests, old PHP web resume
 └── docker-compose.yml
 ```
 
@@ -61,13 +63,29 @@ The Grafana dashboard is the community "Node Exporter Full", imported by hand. I
 ## What is implemented
 
 - [x] Terraform: EC2, Security Group, Elastic IP, 30 GB root volume
-- [x] Dockerized PHP applications (web resume and LovelyPet)
-- [x] CI/CD: push to `main` → build both images → Docker Hub → SSH deploy (`compose pull`, recreate, Nginx reload, image prune). There is no approval step, so every push to `main` deploys.
+- [x] Web resume rebuilt in **Next.js 16** (App Router): tabs for skills and projects, an expandable career timeline, and a 3-theme switcher. Multi-stage Docker build with `output: "standalone"`, runs as a non-root user on port 3000, about 50 MB RAM (see below)
+- [x] Dockerized PHP applications (LovelyPet and Mini Shopping)
+- [x] CI/CD: push to `main` → build all three images (tagged with the commit SHA) → Docker Hub → SSH deploy (`compose pull`, recreate, Nginx reload, image prune). There is no approval step, so every push to `main` deploys.
 - [x] Nginx reverse proxy with multi-subdomain routing
 - [x] HTTPS via Let's Encrypt / Certbot
 - [x] Certificate renewal via Certbot's systemd timer (snap), webroot challenge on port 80
 - [x] SBOM generation in CI: Trivy creates a CycloneDX SBOM for each image and uploads both as a GitHub Actions artifact (no vulnerability scan yet)
 - [x] Prometheus and Grafana with `node_exporter` and `cAdvisor`
+
+## Web resume overhaul: PHP → Next.js, 17 Nov 2026
+
+**Goal:** rebuild the PHP resume in Next.js (the stack I now use at work) and ship it through the same pipeline without touching DNS, the Elastic IP or the Nginx server blocks.
+
+| Step | Outcome |
+|---|---|
+| Lift-and-shift: old CSS imported as-is, PHP arrays → JS objects, `foreach` → `.map()` | Same content and look as the PHP site |
+| New UI: skill and project tabs, expandable timeline, 3-theme switcher (CSS variables + `data-theme`) | Built as small client components; the page itself stays a server component |
+| Multi-stage Dockerfile, `output: "standalone"`, non-root user on port 3000 | Local `docker run` served the site at about 48 MB RAM |
+| Compose `8080:3000` + `mem_limit: 192m`, Nginx `proxy_pass` to `:3000`, images tagged with the commit SHA | Old PHP version kept in `archive/web-resume-php/` for rollback |
+
+**Rollback:** `git revert` the migration commit (CI redeploys PHP), or `WEB_RESUME_TAG=<sha> docker compose up -d web-resume` for a later Next.js release.
+
+Full write-up: [`docs/web-resume-overhaul-php-to-nextjs.md`](docs/web-resume-overhaul-php-to-nextjs.md).
 
 ## Kubernetes lab (k3s + ArgoCD), 4 Oct 2026
 
@@ -103,7 +121,7 @@ Problems hit and fixed during development, kept as a record of troubleshooting r
 ## Known limitations and planned work
 
 **Pipeline**
-- No tests or vulnerability scanning (SBOMs are generated but not scanned or used as a gate). Tags `v1.0` and `latest` are overwritten on every run, so a rollback means reverting the commit and rebuilding. Planned: commit-SHA tags, a Trivy vulnerability scan with a failing threshold, an approval step, and rollback by redeploying an earlier tag.
+- No tests or vulnerability scanning (SBOMs are generated but not scanned or used as a gate). Images are now also tagged with the commit SHA, so the web resume can be rolled back on the host with `WEB_RESUME_TAG=<sha> docker compose up -d web-resume`. Planned: a Trivy vulnerability scan with a failing threshold, an approval step, and SHA-based rollback for the PHP apps too.
 - Push-based deploy over SSH. Third-party Actions are pinned by tag or branch (`appleboy/ssh-action@v1.0.3`, `aquasecurity/trivy-action@master`) rather than commit SHA. Planned: pull-based CD (ArgoCD) and pinning by SHA.
 
 **Infrastructure**
@@ -132,4 +150,4 @@ Problems hit and fixed during development, kept as a record of troubleshooting r
 
 - Email: anuphan.natee@hotmail.com
 - Phone: 096-393-5939
-- Location: Rayong, Thailand
+- Location: Bangkok, Thailand

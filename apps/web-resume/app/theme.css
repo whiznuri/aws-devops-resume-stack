@@ -1,0 +1,172 @@
+/* ============================================================
+   Theme — ฟ้าทอง (ค่าตั้งต้น = มืด)
+   import ไฟล์นี้ "หลัง" style.css เพื่อให้ทับค่าเดิม
+   ============================================================ */
+:root {
+  --bg: #0B0D2E;
+  --surface: #141A4A;
+  --surface-alt: #10153D;
+  --text: #F3E2C3;
+  --text-muted: #AFB9DA;
+  --accent: #C9A24E;
+  --accent-soft: rgba(201, 162, 78, 0.12);
+  --border: rgba(201, 162, 78, 0.28);
+  --border-soft: rgba(243, 226, 195, 0.10);
+  --nav-bg: rgba(11, 13, 46, 0.92);
+  --nav-text: #F3E2C3;
+  --btn-bg: #C9A24E;
+  --btn-text: #0B0D2E;
+  --shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* เอสเปรสโซ: น้ำตาลเข้ม + ตัวหนังสือแชมเปญ + ทอง */
+[data-theme="espresso"] {
+  --bg: #241912;
+  --surface: #35261D;
+  --surface-alt: #2C1F17;
+  --text: #EADCC2;
+  --text-muted: #C4B39A;
+  --accent: #C9A24E;
+  --accent-soft: rgba(201, 162, 78, 0.14);
+  --border: rgba(201, 162, 78, 0.32);
+  --border-soft: rgba(234, 220, 194, 0.12);
+  --nav-bg: #1A120D;
+  --nav-text: #EADCC2;
+  --btn-bg: #C9A24E;
+  --btn-text: #241912;
+  --shadow: rgba(0, 0, 0, 0.55);
+}
+
+/* สว่าง: พื้นแชมเปญ + การ์ดครีม + กรอบทอง + navbar กรมท่า */
+[data-theme="light"] {
+  --bg: #EADCC2;
+  --surface: #FBF5EA;
+  --surface-alt: #F4EAD6;
+  --text: #0B0D45;
+  --text-muted: #3D4777;
+  --accent: #8A6A1F;
+  --accent-soft: rgba(138, 106, 31, 0.12);
+  --border: rgba(138, 106, 31, 0.45);
+  --border-soft: rgba(11, 13, 69, 0.14);
+  --nav-bg: #0B0D45;
+  --nav-text: #F3E2C3;
+  --btn-bg: #0B0D45;
+  --btn-text: #F3E2C3;
+  --shadow: rgba(11, 13, 69, 0.18);
+}
+
+/* สีที่ style.css เดิมฝังไว้ตายตัว → เปลี่ยนมาใช้ตัวแปร */
+.site-nav { background: var(--nav-bg); }
+.site-nav, .site-nav a { color: var(--nav-text); }
+.site-nav a:hover { color: #C9A24E; }
+.timeline-item { background: var(--surface); box-shadow: 0 4px 18px var(--shadow); }
+.timeline-header { background: transparent; }
+.timeline-details p { color: var(--text-muted); }
+.education__gpa { background: var(--accent-soft); border-color: var(--border); }
+.showcase__card, .education__card { box-shadow: 0 6px 24px var(--shadow); border-color: var(--border); }
+
+/* ---------- ลูกเล่นหรูๆ ---------- */
+
+/* รูปโปรไฟล์: กรอบทองซ้อนสองชั้น เหมือนกรอบรูปในพาเลต */
+.hero__image-wrapper {
+  border-color: var(--accent);
+  outline: 1px solid var(--border);
+  outline-offset: 8px;
+  box-shadow: 0 14px 40px var(--shadow);
+}
+
+/* ป้าย "Hardware to Developer": ตัวพิมพ์ใหญ่ ห่างๆ สีทอง */
+.badge {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* เส้นทองสั้นๆ ใต้หัวข้อทุก section */
+.section-title::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 2px;
+  margin-top: 0.75rem;
+  background: var(--accent);
+}
+
+/* navbar: เส้นทองบางๆ ด้านล่าง + ปุ่มธีมกรอบทอง */
+.site-nav { border-bottom: 1px solid rgba(201, 162, 78, 0.35); }
+.site-nav button { border-color: rgba(201, 162, 78, 0.6); }
+
+/* footer: กรมท่าเหมือน navbar ปิดหัวท้ายหน้าเว็บให้เป็นกรอบเดียวกัน */
+.site-footer {
+  background: var(--nav-bg);
+  border-top: 1px solid rgba(201, 162, 78, 0.35);
+}
+.site-footer__inner,
+.footer-container {
+  display: block;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--nav-text);
+  opacity: 0.85;
+}
+
+/* ปุ่มหลัก "ดูผลงานโปรเจกต์": ทึบ ไม่กลืนกับพื้น */
+.hero__cta {
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-text);
+  letter-spacing: 0.06em;
+  box-shadow: 0 6px 18px var(--shadow);
+}
+.hero__cta:hover {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ลิงก์ในการ์ดโปรเจกต์: เป็นปุ่มแคปซูลกรอบทอง */
+.showcase__link {
+  display: inline-block;
+  padding: 0.35rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+}
+.showcase__link:hover {
+  background: var(--accent-soft);
+  text-decoration: none;
+}
+
+/* ปุ่มแท็บ (skills / projects): ปุ่มที่ยังไม่เลือกก็ต้องมองเห็นชัด */
+.tab-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+.tab-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tab-btn[aria-selected="true"] {
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-text);
+  font-weight: 600;
+}
+
+/* สลับธีมแล้วสีค่อยๆ เปลี่ยน */
+body, .site-nav, .site-footer, .timeline-item, .showcase__card, .education__card {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

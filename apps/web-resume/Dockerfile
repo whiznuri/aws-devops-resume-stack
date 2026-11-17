@@ -1,15 +1,28 @@
-# ใช้ Official PHP + Apache Image
-FROM php:8.2-apache
+FROM node:24-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# เปิดใช้งาน mod_rewrite ของ Apache (จำเป็นสำหรับไฟล์ .htaccess)
-RUN a2enmod rewrite
+FROM node:24-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
-# ก๊อปปี้ไฟล์เว็บทั้งหมดใน apps/web-resume ไปไว้ใน Web Root ของ Container
-COPY . /var/www/html/
+FROM node:24-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# ตั้งค่า Permission ให้ Apache อ่านและรันไฟล์ได้ถูกต้อง
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
-# เปิด Port 80 สำหรับรับ Web Traffic
-EXPOSE 80
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]

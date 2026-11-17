@@ -2,10 +2,12 @@ version: '3.8'
 
 services:
   web-resume:
-    image: whiznuri363924an/web-resume-app:latest
+    # Next.js (เดิมเป็น PHP) — ใส่ WEB_RESUME_TAG=<commit sha> เพื่อถอยไปเวอร์ชันเก่าได้
+    image: whiznuri363924an/web-resume-app:${WEB_RESUME_TAG:-latest}
     container_name: web-resume-app
     ports:
-      - "8080:80"
+      - "8080:3000"
+    mem_limit: 192m
     restart: always
 
   lovelypet:
