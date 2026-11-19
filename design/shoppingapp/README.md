@@ -232,6 +232,8 @@ docker compose exec shopping-api python -m app.scripts.create_user <admin e-mail
 docker compose exec shopping-api python -m app.scripts.seed_products
 ```
 
+**Shortcut without SSH:** steps 2 and 4, plus a load/RAM report, run from **Actions → Ops (manual tasks on EC2) → Run workflow** (`renew-tls-cert`, `seed-products`, `create-admin`, `status-report`). `create-admin` reads the e-mail and password from the secrets `SHOPPING_ADMIN_EMAIL` and `SHOPPING_ADMIN_PASSWORD`.
+
 **Rollback:** `SHOPPING_TAG=<commit sha> docker compose up -d shopping-api shopping-web`
 
 **Clean-up (optional, irreversible):** the old MySQL volume is kept; remove it once you are sure: `docker volume ls | grep mysql_data` → `docker volume rm <name>`.
