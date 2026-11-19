@@ -1,10 +1,10 @@
 # AWS End-to-End DevOps Resume & Monitoring Stack
 
-A self-hosted, containerized resume and portfolio platform on AWS. I built it to practice infrastructure as code, CI/CD and observability on a real deployment, using a single EC2 instance on the AWS Free Tier.
+A self-hosted, containerized resume and portfolio platform on AWS. I built it to practice infrastructure as code, CI/CD, observability and full-stack development on a real deployment, using a single EC2 instance on the AWS Free Tier.
 
 Built by **Anuphan "Diff" Natee**, moving into software development and DevOps after about 15 years in field instrumentation and fiber/network infrastructure.
 
-Live: [diffan.dev](https://diffan.dev) · [lovelypet.diffan.dev](https://lovelypet.diffan.dev) · [grafana.diffan.dev](https://grafana.diffan.dev)
+Live: [diffan.dev](https://diffan.dev) · [shopping.diffan.dev](https://shopping.diffan.dev) · [grafana.diffan.dev](https://grafana.diffan.dev)
 
 This is a learning project, not a production-grade setup: one instance, no high availability, and a list of known gaps at the end of this file.
 
@@ -13,48 +13,45 @@ This is a learning project, not a production-grade setup: one instance, no high 
 ## Architecture
 
 - **Infrastructure as Code:** Terraform provisions the EC2 instance (t3.micro, Ubuntu), Security Group, Elastic IP and a 30 GB root volume. Single instance by design, to keep Free Tier costs predictable.
-- **Runtime:** Docker Compose runs Nginx, the web resume (Next.js), two PHP apps (LovelyPet and Mini Shopping), MySQL 8, Prometheus, Grafana, node_exporter and cAdvisor.
+- **Runtime:** Docker Compose runs Nginx, the web resume (Next.js), the **Shopping App** (Next.js + FastAPI + PostgreSQL), Prometheus, Grafana, node_exporter and cAdvisor.
 - **Reverse proxy and TLS:** Nginx routes three subdomains. HTTPS uses Let's Encrypt; Certbot (installed as a snap) runs on the host with the webroot challenge and renews through its systemd timer.
-- **CI/CD:** GitHub Actions builds all three app images on every push to `main`, tags them with the commit SHA (plus `latest`), pushes them to Docker Hub, then deploys to EC2 over SSH.
+- **CI/CD:** GitHub Actions runs the Shopping App tests (pytest against PostgreSQL, TypeScript type check, ESLint) on every push to `main`; only if they pass does it build the images, tag them with the commit SHA (plus `latest`), push them to Docker Hub and deploy to EC2 over SSH.
 - **Observability:** Prometheus and Grafana, with `node_exporter` (host metrics) and `cAdvisor` (container metrics).
 
 ```
-                 ┌─────────────────┐
-   git push  ──▶  │ GitHub Actions  │──▶ Build Image ──▶ Push to Docker Hub ──▶ Deploy to EC2
-                 └─────────────────┘
+                 ┌──────────────────────────────────────┐
+   git push  ──▶  │ GitHub Actions: tests ─▶ build ─▶ SBOM │──▶ Docker Hub ──▶ Deploy to EC2
+                 └──────────────────────────────────────┘
                                                                     │
                                                                     ▼
-                 ┌──────────────────────────────────────────────────────┐
-                 │                    AWS EC2 (Ubuntu)                   │
-                 │           Provisioned via Terraform (IaC)             │
-                 │  ┌───────────────────────────────────────────────┐   │
-                 │  │              Nginx Reverse Proxy (HTTPS)       │   │
-                 │  └───────┬─────────────────┬─────────────────────┘   │
-                 │          ▼                 ▼                         │
-                 │   diffan.dev      lovelypet.diffan.dev   grafana.diffan.dev
-                 │   (Next.js)       (PHP + MySQL App)      (Prometheus + Grafana)
-                 └──────────────────────────────────────────────────────┘
+                 ┌──────────────────────────────────────────────────────────────┐
+                 │                       AWS EC2 (Ubuntu)                         │
+                 │               Provisioned via Terraform (IaC)                  │
+                 │  ┌────────────────────────────────────────────────────────┐   │
+                 │  │                 Nginx Reverse Proxy (HTTPS)             │   │
+                 │  └───────┬───────────────────┬────────────────────┬───────┘   │
+                 │          ▼                   ▼                    ▼           │
+                 │     diffan.dev      shopping.diffan.dev    grafana.diffan.dev │
+                 │     (Next.js)       Next.js ─▶ FastAPI     (Prometheus +      │
+                 │                          ─▶ PostgreSQL       Grafana)         │
+                 └──────────────────────────────────────────────────────────────┘
 ```
 
 ## Repository structure
 
 ```text
 aws-devops-resume-stack/
-├── .github/workflows/     # CI/CD: build, push to Docker Hub, deploy (three apps)
+├── .github/workflows/     # CI/CD: test gate → build → SBOM → deploy
 ├── terraform/             # IaC: EC2, Security Group, Elastic IP
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
 ├── apps/
 │   ├── web-resume/        # Web resume — Next.js 16 (migrated from PHP, Nov 2026)
-│   ├── lovelypet/         # PHP + MySQL app
-│   └── ministock/         # Mini Shopping — PHP + MySQL shop at /shop/
+│   └── shoppingapp-next/  # Shopping App — Next.js 16 (web) + FastAPI (api), Nov 2026
+├── design/                # Architecture, feature flows, data model, roadmap, deploy runbook
 ├── nginx/                 # Reverse proxy config and subdomain routing
-├── database/schema.sql    # MySQL schema for LovelyPet (loaded on first start)
 ├── monitoring/
 │   └── prometheus.yml     # Scrape config (node_exporter, cAdvisor)
 ├── docs/                  # Incident write-ups and migration notes
-├── archive/               # Not deployed: k3s / ArgoCD lab manifests, old PHP web resume
+├── archive/               # Not deployed: PHP apps (LovelyPet, Mini Shopping) + MySQL schema, old PHP resume, k3s / ArgoCD lab
 └── docker-compose.yml
 ```
 
@@ -63,14 +60,29 @@ The Grafana dashboard is the community "Node Exporter Full", imported by hand. I
 ## What is implemented
 
 - [x] Terraform: EC2, Security Group, Elastic IP, 30 GB root volume
-- [x] Web resume rebuilt in **Next.js 16** (App Router): tabs for skills and projects, an expandable career timeline, and a 3-theme switcher. Multi-stage Docker build with `output: "standalone"`, runs as a non-root user on port 3000, about 50 MB RAM (see below)
-- [x] Dockerized PHP applications (LovelyPet and Mini Shopping)
-- [x] CI/CD: push to `main` → build all three images (tagged with the commit SHA) → Docker Hub → SSH deploy (`compose pull`, recreate, Nginx reload, image prune). There is no approval step, so every push to `main` deploys.
-- [x] Nginx reverse proxy with multi-subdomain routing
-- [x] HTTPS via Let's Encrypt / Certbot
-- [x] Certificate renewal via Certbot's systemd timer (snap), webroot challenge on port 80
-- [x] SBOM generation in CI: Trivy creates a CycloneDX SBOM for each image and uploads both as a GitHub Actions artifact (no vulnerability scan yet)
+- [x] Web resume rebuilt in **Next.js 16** (App Router): tabs for skills and projects, an expandable career timeline, and a 3-theme switcher. Multi-stage Docker build with `output: "standalone"`, runs as a non-root user on port 3000, about 50 MB RAM
+- [x] **Shopping App** in Next.js 16 + FastAPI + PostgreSQL: storefront, cart, checkout with row-level locking, Omise PromptPay payments (test mode), automatic order expiry, JWT auth with RBAC and a back office. 94 automated tests. See [`design/shoppingapp`](design/shoppingapp/README.md)
+- [x] CI/CD: push to `main` → **tests must pass** → build images (tagged with the commit SHA) → Docker Hub → SSH deploy (`compose pull`, recreate, Nginx config test + reload, image prune). There is no approval step, so every push to `main` deploys.
+- [x] Nginx reverse proxy with multi-subdomain routing; the Shopping App upstream is resolved at request time, so a stopped container returns 502 for that subdomain only
+- [x] HTTPS via Let's Encrypt / Certbot, renewal via Certbot's systemd timer (snap), webroot challenge on port 80
+- [x] SBOM generation in CI: Trivy creates a CycloneDX SBOM for each image and uploads them as a GitHub Actions artifact (no vulnerability scan yet)
 - [x] Prometheus and Grafana with `node_exporter` and `cAdvisor`
+
+## Shopping App: Next.js + FastAPI, 19 Nov 2026
+
+**Goal:** replace the two PHP demos with one full-stack application in the stack I use at work, built feature by feature (vertical slices), each with a design diagram first and automated tests before it counts as done.
+
+| Area | Implementation |
+|---|---|
+| Architecture | Next.js as a BFF (Server Components, Server Actions, `proxy.ts`), FastAPI behind it on the internal network, PostgreSQL with Alembic migrations |
+| Auth | Argon2 passwords, 15-minute JWT + rotating refresh tokens in `httpOnly` cookies, idle/absolute session limits per role, RBAC enforced at both the page and the API |
+| Checkout | One transaction: lock cart rows and variants (`SELECT … FOR UPDATE`, id order), all-or-nothing stock deduction, price snapshot, 1-hour reservation |
+| Payments | Omise PromptPay QR (test mode), server-to-server verification of status, amount, currency and order id |
+| Background job | Expires unpaid orders and releases stock; checks Omise first so a last-minute payment is honoured |
+| Testing | pytest with a real PostgreSQL database, test doubles for Omise, a two-thread race test for the last item in stock |
+| Deployment | Production images (Next.js standalone, FastAPI running migrations on start), secrets from an untracked `.env`, database not exposed outside the Docker network. Measured locally: API ~86 MB, web ~59 MB RAM |
+
+Feature flows, business rules, data model, roadmap and the deployment runbook: [`design/shoppingapp/`](design/shoppingapp/README.md).
 
 ## Web resume overhaul: PHP → Next.js, 17 Nov 2026
 
@@ -113,25 +125,25 @@ Full write-up: [`docs/web-resume-overhaul-php-to-nextjs.md`](docs/web-resume-ove
 
 Problems hit and fixed during development, kept as a record of troubleshooting rather than a feature list.
 
-1. **Nginx `502 Bad Gateway` after container recreation.** Docker assigns a new internal IP whenever a container is recreated. Nginx resolves upstream names when it loads its config, so it kept the stale IP. Fixed by reloading Nginx after every deployment. A more robust option (runtime DNS re-resolution in Nginx) is not implemented yet.
+1. **Nginx `502 Bad Gateway` after container recreation.** Docker assigns a new internal IP whenever a container is recreated. Nginx resolves upstream names when it loads its config, so it kept the stale IP. Fixed by reloading Nginx after every deployment; the Shopping App server block now also re-resolves the container name at request time.
 2. **EC2 disk full, causing Docker builds to hang.** The default 8 GB root volume filled up with Docker images. Cleared unused images with `docker image prune -f` (now run on every deploy) and increased the root volume to 30 GB in Terraform.
-3. **CI/CD only building one of two apps.** The original pipeline built only `web-resume`, so `lovelypet` had no image on Docker Hub and the deployment failed. Restructured `deploy.yml` to build and push both apps and deploy only those two services with `--remove-orphans`.
+3. **CI/CD only building one of two apps.** The original pipeline built only `web-resume`, so `lovelypet` had no image on Docker Hub and the deployment failed. Restructured `deploy.yml` to build and push every app and deploy only those services with `--remove-orphans`.
 4. **External HTTP/HTTPS timeouts after stopping k3s (4 Oct 2026).** All containers were `Up` and `curl localhost` worked, and the application ports were reachable from outside, but ports 80 and 443 timed out. Probable cause, inferred from the symptoms and the fix: network rules left behind by k3s (its bundled Traefik/ServiceLB publishes ports 80 and 443 on the host) were still intercepting traffic. Fixed by running `k3s-killall.sh`, restarting Docker and running `docker compose up -d`; the site was then reachable again. I did not capture packets, so the cause is not confirmed. Full write-up: [`docs/incidents/2026-10-04-k3s-iptables.md`](docs/incidents/2026-10-04-k3s-iptables.md).
 
 ## Known limitations and planned work
 
 **Pipeline**
-- No tests or vulnerability scanning (SBOMs are generated but not scanned or used as a gate). Images are now also tagged with the commit SHA, so the web resume can be rolled back on the host with `WEB_RESUME_TAG=<sha> docker compose up -d web-resume`. Planned: a Trivy vulnerability scan with a failing threshold, an approval step, and SHA-based rollback for the PHP apps too.
+- Tests gate the build for the Shopping App only (the web resume has none). No vulnerability scanning yet: SBOMs are generated but not scanned or used as a gate. Planned: a Trivy vulnerability scan with a failing threshold and an approval step.
 - Push-based deploy over SSH. Third-party Actions are pinned by tag or branch (`appleboy/ssh-action@v1.0.3`, `aquasecurity/trivy-action@master`) rather than commit SHA. Planned: pull-based CD (ArgoCD) and pinning by SHA.
 
 **Infrastructure**
 - Terraform state is local, there are no modules or separate environments, and the AMI is selected with `most_recent`. `user_data` is empty, so software on the instance was installed by hand. Planned: remote state with locking, a pinned AMI, and cloud-init or Ansible for configuration.
-- Single instance with about 80% RAM used (swap in use but stable). Planned: more headroom, or a multi-AZ design if it ever needed to scale.
+- Single instance. Before the Shopping App, RAM use was about 80% (swap in use but stable); the switch removes MySQL and two PHP containers, but usage on the instance has not been re-measured yet.
 
 **Security hardening**
 - SSH is open to the internet because CI connects over SSH. Ports 3000, 8080 and 9091 are published although Nginx already serves these apps. Planned: SSM or pull-based deploy, close the redundant ports.
 - IMDSv1 is still allowed and the root volume is not encrypted.
-- `docker-compose.yml` contains sample credentials for the demo database. CI credentials are stored as GitHub Secrets. Planned: move database credentials to an untracked `.env` or a secret manager.
+- No rate limiting on the Shopping App login endpoint yet.
 
 **Observability**
 - No alert rules and no application-level metrics (error rate, latency). Planned: Grafana Alerting to Telegram/LINE, plus an external uptime check, since an outside-in check would have caught incident 4 immediately.
@@ -143,8 +155,18 @@ Problems hit and fixed during development, kept as a record of troubleshooting r
 
 ## Repository notes
 
-- Terraform state files (`*.tfstate`) and `.terraform/` are excluded through `.gitignore`.
+- Terraform state files (`*.tfstate`) and `.terraform/` are excluded through `.gitignore`; so are `.env` files.
 - Pushes to `main` trigger a deployment. Documentation-only commits can include `[skip ci]` in the message to avoid redeploying.
+
+## Legacy (archived 19 Nov 2026)
+
+Replaced by the Shopping App. Code kept in `archive/` for reference; nothing below is deployed any more.
+
+- ~~**LovelyPet** — PHP + MySQL pet catalogue with a back office, at `lovelypet.diffan.dev`~~ → `archive/lovelypet/` (DNS record removed)
+- ~~**Mini Shopping (ministock)** — PHP 8 + MySQL shop at `diffan.dev/shop/`~~ → `archive/ministock/` (`/shop` now redirects to `shopping.diffan.dev`)
+- ~~**MySQL 8** with `database/schema.sql` loaded on first start~~ → `archive/database/schema.sql` (the data volume is still on the instance until removed by hand)
+- ~~`docker-compose.yml` contains sample credentials for the demo database~~ → the Shopping App reads its secrets from an untracked `.env`
+- ~~CI builds three images: web-resume, lovelypet, ministock~~ → web-resume, shopping-api, shopping-web
 
 ## Contact
 

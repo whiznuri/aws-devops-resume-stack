@@ -10,41 +10,49 @@ services:
     mem_limit: 192m
     restart: always
 
-  lovelypet:
-    image: whiznuri363924an/lovelypet-app:latest
-    container_name: lovelypet-app
-    ports:
-      - "8001:80"
-    depends_on:
-      - database
+  # ---------- Shopping App (apps/shoppingapp-next) — แทน lovelypet + ministock (ย้ายไป archive/) ----------
+  # ค่าลับอ่านจากไฟล์ .env บน EC2 (ไม่อยู่ใน git) · ไม่ตั้ง = compose หยุดพร้อมบอกชื่อตัวแปร (ดีกว่ารันด้วยรหัส default)
+  shopping-db:
+    image: postgres:17-alpine
+    container_name: shopping-db
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: ${SHOPPING_DB_PASSWORD:?ตั้ง SHOPPING_DB_PASSWORD ใน .env}
+      POSTGRES_DB: shop
+    volumes:
+      - shopping_pg_data:/var/lib/postgresql/data
+    # ไม่เปิด port ออกนอกเครื่อง: มีแค่ shopping-api ที่ต้องคุยกับ DB (ผ่าน network ภายใน)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    mem_limit: 160m
     restart: always
 
-  ministock:
-    image: whiznuri363924an/ministock-app:latest
-    container_name: ministock
+  shopping-api:
+    # FastAPI · ตอนสตาร์ทรัน alembic upgrade head ก่อนเอง · SHOPPING_TAG=<commit sha> เพื่อถอยเวอร์ชัน
+    image: whiznuri363924an/shopping-api:${SHOPPING_TAG:-latest}
+    container_name: shopping-api
     environment:
-      DB_HOST: database
-      DB_NAME: ministock
-      DB_USER: ministock_app
-      DB_PASS: ${MINISTOCK_DB_PASS}
+      DATABASE_URL: postgresql+psycopg://shop:${SHOPPING_DB_PASSWORD}@shopping-db:5432/shop
+      JWT_SECRET: ${SHOPPING_JWT_SECRET:?ตั้ง SHOPPING_JWT_SECRET ใน .env}
+      OMISE_SECRET_KEY: ${OMISE_SECRET_KEY:-}
     depends_on:
-      - database
-    mem_limit: 128m
+      shopping-db:
+        condition: service_healthy
+    mem_limit: 192m
     restart: always
-    
-  database:
-    image: mysql:8.0
-    container_name: mysql-db
+
+  shopping-web:
+    # Next.js standalone · คุยกับ API ผ่าน network ภายใน (BFF) browser ไม่เห็น API ตรง
+    image: whiznuri363924an/shopping-web:${SHOPPING_TAG:-latest}
+    container_name: shopping-web
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: lovelypet_db
-      MYSQL_USER: lovely_user
-      MYSQL_PASSWORD: secret123
-    volumes:
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-      - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
+      API_URL: http://shopping-api:8000
+    depends_on:
+      - shopping-api
+    mem_limit: 192m
     restart: always
 
   prometheus:
@@ -99,8 +107,9 @@ services:
       - /var/www/certbot:/var/www/certbot #เปลี่ยนจาก - ./certbot/www:/var/www/certbot
     depends_on:
       - web-resume
-      - lovelypet
+      - shopping-web
       - grafana
 
 volumes:
-  mysql_data:
+  shopping_pg_data:
+  # mysql_data (lovelypet/ministock) ถอดออกจาก compose แล้ว — volume เดิมบน EC2 ยังอยู่ ลบเองเมื่อแน่ใจ: docker volume rm <ชื่อ>_mysql_data

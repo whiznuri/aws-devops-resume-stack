@@ -26,12 +26,16 @@ const skills = [
   {
     category: "Web Development",
     items: [
-      "Next.js (App Router, Server/Client Components), React (components, props, useState), JavaScript",
+      "Next.js 16 (App Router, Server Components, Server Actions, proxy), React 19, TypeScript, JavaScript",
+      "Python FastAPI: REST API, dependency injection, Pydantic validation; SQLAlchemy 2 ORM + Alembic migrations",
+      "PostgreSQL: transactions, row locking (FOR UPDATE / SKIP LOCKED), constraints, JSONB",
+      "Auth & Security: JWT + rotating refresh tokens, RBAC, Argon2, httpOnly cookies (BFF), data masking, IDOR / open-redirect guards",
+      "Payment Integration: Omise PromptPay QR with server-to-server verification (amount, currency, order)",
+      "Automated Testing: pytest (unit, integration, race-condition test, test doubles), TypeScript + ESLint in CI",
       "Frontend: Tailwind CSS, next/font, next/image — migrated this site from PHP to Next.js",
       "PHP 8 (PDO) & MySQL: relational design, transactions, row locking (SELECT … FOR UPDATE)",
-      "REST API (PHP): JSON, HTTP status codes (2xx / 4xx / 5xx), stateless, input validation",
       "Web QA: testing against user manuals, bug reports, DevTools Network debugging",
-      "Technical Writing: README, Architecture Decisions, Test Evidence",
+      "Technical Writing: README, Architecture Decisions, Mermaid flow / sequence / ER diagrams, Test Evidence",
     ],
   },
 
@@ -40,7 +44,7 @@ const skills = [
     items: [
       "AWS Multi-Account: Organizations, SCP, RAM Shared VPC, Transit Gateway",
       "Infrastructure as Code: Terraform / OpenTofu + Terragrunt (layered, per environment)",
-      "CI/CD: GitLab CI (OIDC, plan → manual approve → apply), GitHub Actions",
+      "CI/CD: GitLab CI (OIDC, plan → manual approve → apply), GitHub Actions with a test gate (pytest + PostgreSQL service) before build",
       "Containers: AWS ECS on EC2 (awsvpc, per-task security groups), Docker & Docker Compose",
       "AWS Services: EC2, ALB, Aurora Serverless v2, S3, VPC Endpoints, Systems Manager",
       "Security: GuardDuty, Security Hub, Macie (delegated admin), checkov IaC scanning",
@@ -177,6 +181,24 @@ const journey = [
 
 const projects = [
   {
+    title: "Shopping App — Next.js + FastAPI + PostgreSQL E-commerce",
+    summary:
+      "ร้านค้าออนไลน์แนวไลฟ์สไตล์ (เสื้อผ้า รองเท้า ตุ๊กตา เครื่องสำอาง) เขียนใหม่ทั้งหมดแทนแอป PHP เดิม ทำทีละฟีเจอร์แบบ vertical slice — วาด flow diagram ก่อน แล้วต้องมีเทสอัตโนมัติก่อนนับว่าเสร็จ deploy บน EC2 เครื่องเดียวกับเว็บนี้ผ่าน pipeline ที่ต้องผ่านเทสก่อน build",
+    facts: [
+      "Next.js เป็น BFF (Server Components, Server Actions, proxy) คุยกับ FastAPI ใน network ภายใน · token อยู่ใน httpOnly cookie browser ไม่เห็น API ตรง",
+      "Checkout ใน transaction เดียว: ล็อกแถวด้วย SELECT … FOR UPDATE เรียงตาม id กัน deadlock · ตัดสต็อกแบบทั้งก้อนหรือไม่เลย · เก็บราคา ณ วันที่สั่ง · จองของ 1 ชม.",
+      "จ่ายเงินผ่าน Omise PromptPay (test mode) · server ตรวจสถานะ ยอด สกุลเงิน และเลขออเดอร์กับ Omise เอง ไม่เชื่อ browser · background job ยกเลิกออเดอร์ที่ไม่จ่ายและคืนสต็อก",
+      "Auth: Argon2 + JWT 15 นาที + refresh token แบบหมุนเวียน · idle/absolute timeout ตาม role · RBAC ตรวจ 2 ชั้น (หน้าเว็บ + API) · data masking ข้อมูลส่วนตัว",
+      "สินค้ามี variant (ไซซ์ × สี) สต็อกนับต่อ variant · รูปผูกกับสี · หน้าร้านไม่เปิดเผยจำนวนสต็อกจริง",
+      "94 automated tests (pytest + PostgreSQL จริง) รวมเทสสองคนแย่งซื้อชิ้นสุดท้ายพร้อมกัน → ได้คนเดียว · GitHub Actions รันเทส + type check + lint ก่อน build ทุกครั้ง",
+    ],
+    links: [
+      { label: "Live Demo", url: "https://shopping.diffan.dev" },
+      { label: "Design Docs", url: "https://github.com/whiznuri/aws-devops-resume-stack/tree/main/design/shoppingapp" },
+      { label: "Source", url: "https://github.com/whiznuri/aws-devops-resume-stack/tree/main/apps/shoppingapp-next" },
+    ],
+  },
+  {
     title: "AWS Multi-Account Landing Zone — Terraform + Terragrunt + GitLab CI",
     summary:
       "งานทดสอบ (take-home) ตำแหน่ง DevOps Engineer: สร้างโครงสร้าง AWS 5 บัญชีตามแผนภาพที่ได้รับ ด้วย IaC ทั้งหมด แล้ว apply จริงผ่าน pipeline ทดสอบ และ destroy กลับจนหมด พร้อมเอกสารบันทึกหลักฐานและข้อจำกัดอย่างตรงไปตรงมา",
@@ -210,9 +232,9 @@ const projects = [
     ],
   },
   {
-    title: "Lovely Pet — Full-Stack App on a Self-Managed AWS Cloud Stack",
+    title: "Lovely Pet (Archived) — Full-Stack App on a Self-Managed AWS Cloud Stack",
     summary:
-      "ระบบ Web Application บริหารจัดการข้อมูลสัตว์เลี้ยงแบบ Full-Stack รันอยู่บน AWS EC2 ที่ provision ด้วย Terraform (IaC) พร้อม CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment), Nginx Reverse Proxy พร้อม HTTPS หลาย subdomain และ Monitoring Stack ที่ทำงานอยู่จริง",
+      "[เก็บเข้า archive แล้ว แทนที่ด้วย Shopping App — โครงสร้าง cloud ด้านล่างยังใช้งานอยู่] ระบบ Web Application บริหารจัดการข้อมูลสัตว์เลี้ยงแบบ Full-Stack รันอยู่บน AWS EC2 ที่ provision ด้วย Terraform (IaC) พร้อม CI/CD Pipeline (GitHub Actions → Docker Hub → automated deployment), Nginx Reverse Proxy พร้อม HTTPS หลาย subdomain และ Monitoring Stack ที่ทำงานอยู่จริง",
     facts: [
       "Infrastructure as Code: Terraform provisioning EC2, Security Group, Elastic IP",
       "CI/CD: Push code → Auto build & push image ขึ้น Docker Hub → Deploy อัตโนมัติ",
@@ -222,15 +244,15 @@ const projects = [
       "SBOM ของทุก image ใน CI (Trivy, CycloneDX) และบันทึก incident จริง เช่น ทดลอง k3s แล้วพอร์ต 80/443 ใช้ไม่ได้",
     ],
     links: [
-      { label: "Live Demo", url: "https://lovelypet.diffan.dev" },
       { label: "GitHub Repo", url: "https://github.com/whiznuri/aws-devops-resume-stack" },
+      { label: "Source (archived)", url: "https://github.com/whiznuri/aws-devops-resume-stack/tree/main/archive/lovelypet" },
       { label: "Docker Hub", url: "https://hub.docker.com/repositories/whiznuri363924an" },
     ],
   },
   {
-    title: "Mini Shopping — PHP + MySQL E-commerce with Transactional Stock",
+    title: "Mini Shopping (Archived) — PHP + MySQL E-commerce with Transactional Stock",
     summary:
-      "ร้านค้าออนไลน์ขนาดเล็กเขียนด้วย PHP 8 (PDO) + MySQL มีทั้งหน้าร้าน (สมัครสมาชิก ตะกร้า สั่งซื้อ ประวัติออเดอร์) และหลังบ้าน (จัดการสินค้า สต็อก รายงานยอดขาย) เน้นความถูกต้องของข้อมูลเมื่อมีคนสั่งพร้อมกัน แล้ว deploy เป็นแอปที่ 3 ใน pipeline เดียวกับเว็บนี้",
+      "[เก็บเข้า archive แล้ว ต่อยอดเป็น Shopping App (Next.js + FastAPI)] ร้านค้าออนไลน์ขนาดเล็กเขียนด้วย PHP 8 (PDO) + MySQL มีทั้งหน้าร้าน (สมัครสมาชิก ตะกร้า สั่งซื้อ ประวัติออเดอร์) และหลังบ้าน (จัดการสินค้า สต็อก รายงานยอดขาย) เน้นความถูกต้องของข้อมูลเมื่อมีคนสั่งพร้อมกัน แล้ว deploy เป็นแอปที่ 3 ใน pipeline เดียวกับเว็บนี้",
     facts: [
       "ตะกร้า → 1 ออเดอร์หลายรายการ ออกแบบแบบ header/detail (orders / order_items) และเก็บราคา ณ วันที่สั่ง",
       "ตัดสต็อกใน transaction เดียวด้วย SELECT … FOR UPDATE ล็อกแถวเรียงตาม id ลดโอกาส deadlock — ชิ้นไหนไม่พอ rollback ทั้งออเดอร์",
@@ -240,9 +262,7 @@ const projects = [
       "Deploy: GitHub Actions → Docker Hub → EC2, Nginx resolve ชื่อ container ตอน request ถ้าแอปล่มจะกระทบแค่ /shop ไม่ลากเว็บอื่น",
     ],
     links: [
-      { label: "Live Demo", url: "https://diffan.dev/shop/" },
-      { label: "API (JSON)", url: "https://diffan.dev/shop/api/products.php" },
-      { label: "Source", url: "https://github.com/whiznuri/aws-devops-resume-stack/tree/main/apps/ministock" },
+      { label: "Source (archived)", url: "https://github.com/whiznuri/aws-devops-resume-stack/tree/main/archive/ministock" },
     ],
   },
 ];

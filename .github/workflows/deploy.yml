@@ -6,7 +6,57 @@ on:
       - main
 
 jobs:
+  # =========================================================
+  # Quality gate: เทสต้องเขียวก่อน ถึงจะ build / deploy ได้
+  # =========================================================
+  test-shopping-api:
+    runs-on: ubuntu-latest
+    services:
+      # Postgres จริงสำหรับเทส (มีเทสแย่งชิ้นสุดท้ายพร้อมกัน ต้องใช้ล็อกของ DB จริง ใช้ตัวปลอมไม่ได้)
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: shop
+          POSTGRES_PASSWORD: shop
+          POSTGRES_DB: shop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shop -d shop"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/shoppingapp-next/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Run pytest (unit + integration)
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://shop:shop@localhost:5432/shop_test
+        run: uv run pytest -q
+
+  test-shopping-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/shoppingapp-next/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/shoppingapp-next/web/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npx next typegen && npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+
   build-and-deploy:
+    needs: [test-shopping-api, test-shopping-web]
     runs-on: ubuntu-latest
 
     steps:
@@ -32,29 +82,26 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/web-resume-app:latest
 
-      # Step 3: Build และ Push Image lovelypet ตัวใหม่
-      - name: Build and Push LovelyPet Image
+      # Step 3: Build และ Push Shopping App (แทน lovelypet + ministock ที่ย้ายไป archive/)
+      - name: Build and Push Shopping API Image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/lovelypet
-          file: ./apps/lovelypet/Dockerfile
+          context: ./apps/shoppingapp-next/api
+          file: ./apps/shoppingapp-next/api/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:v1.0
-            ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/shopping-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/shopping-api:latest
 
-      # Step 3.5: Build และ Push Image ministock (Mini Shopping)
-      - name: Build and Push Ministock Image
+      - name: Build and Push Shopping Web Image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/ministock
-          file: ./apps/ministock/Dockerfile
+          context: ./apps/shoppingapp-next/web
+          file: ./apps/shoppingapp-next/web/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:v1.0
-            ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/shopping-web:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/shopping-web:latest
 
       # =========================================================
       # DevSecOps & Security Compliance: Trivy SBOM Generation
@@ -66,19 +113,19 @@ jobs:
           format: 'cyclonedx'
           output: 'web-resume-sbom.json'
 
-      - name: Generate SBOM for LovelyPet (Trivy)
+      - name: Generate SBOM for Shopping API (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/lovelypet-app:latest'
+          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/shopping-api:latest'
           format: 'cyclonedx'
-          output: 'lovelypet-sbom.json'
+          output: 'shopping-api-sbom.json'
 
-      - name: Generate SBOM for Ministock (Trivy)
+      - name: Generate SBOM for Shopping Web (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/ministock-app:latest'
+          image-ref: 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/shopping-web:latest'
           format: 'cyclonedx'
-          output: 'ministock-sbom.json'
+          output: 'shopping-web-sbom.json'
 
       - name: Upload SBOM Artifacts to GitHub
         uses: actions/upload-artifact@v4
@@ -86,10 +133,10 @@ jobs:
           name: software-bill-of-materials
           path: |
             web-resume-sbom.json
-            lovelypet-sbom.json
-            ministock-sbom.json
+            shopping-api-sbom.json
+            shopping-web-sbom.json
 
-      # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy ทั้ง 3 แอป
+      # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -100,9 +147,12 @@ jobs:
             set -e   # คำสั่งไหนพัง หยุดทันที + CI ขึ้นแดง (เดิมพังกลางทางแล้วยังเขียว)
             cd ~/aws-devops-resume-stack
             git pull origin main
-            docker compose pull web-resume lovelypet ministock
-            docker compose up -d --force-recreate --remove-orphans web-resume lovelypet ministock
+            docker compose pull web-resume shopping-api shopping-web
+            # DB ไม่ force-recreate (ไม่ต้องรีสตาร์ท DB ทุก deploy) · ขึ้นก่อนให้ API มีที่ต่อ
+            docker compose up -d shopping-db
+            # --remove-orphans: เก็บ container ที่ไม่อยู่ใน compose แล้ว (lovelypet, ministock, mysql-db) · volume ไม่ถูกลบ
+            docker compose up -d --force-recreate --remove-orphans web-resume shopping-api shopping-web
             # ทดสอบ config ก่อน reload: ถ้า config ผิด nginx ตัวเดิมยังรันต่อ เว็บไม่ล่ม
             docker exec nginx-proxy nginx -t
             docker exec nginx-proxy nginx -s reload
-            docker image prune -f
+            docker image prune -f

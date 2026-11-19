@@ -1,0 +1,49 @@
+# dev: `docker compose up -d` เปิด db + api · เว็บรันเองด้วย `npm run dev -- --port 3100` ในโฟลเดอร์ web
+# port ฝั่งเครื่อง ขยับเป็น 3100 / 8100 / 5433 กันชนกับโปรเจกต์อื่นที่ใช้ 3000 / 8000 / 5432
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: shop
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    command: ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://shop:shop@db:5432/shop
+      OMISE_SECRET_KEY: ${OMISE_SECRET_KEY:-}  # อ่านจากไฟล์ .env ข้าง ๆ compose (ไม่เขียน key ลงไฟล์นี้)
+      WATCHFILES_FORCE_POLLING: "true" # Windows bind mount ไม่ส่ง event แก้ไฟล์ → ใช้ polling แทน
+    ports:
+      - "8100:8000"
+    volumes:
+      - ./api:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    # dev บน Windows: รันเว็บในเครื่องตรง (npm run dev) แทน — Turbopack ใน Docker ไม่เห็นไฟล์ที่แก้
+    # ต้องการรันครบทั้ง 3 ตัวใน Docker (เช่นเทสก่อน deploy): docker compose --profile full up -d
+    # image เป็นแบบ production (standalone) เหมือนบน EC2 → ไม่ bind mount โค้ด
+    profiles: ["full"]
+    build: ./web
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "3100:3000"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
