@@ -36,7 +36,8 @@ Status as of **19 Nov 2026**. Work is planned as ordered phases rather than cale
 | Nginx: `shopping.diffan.dev`, `/shop` redirect, runtime DNS resolve | ✅ |
 | CI: test gate (pytest + PostgreSQL, type check, lint) → build → SBOM → deploy | ✅ written · ⬜ first green run |
 | DNS `shopping.diffan.dev` → Elastic IP | ✅ |
-| `.env` on EC2 (`SHOPPING_DB_PASSWORD`, `SHOPPING_JWT_SECRET`, `OMISE_SECRET_KEY`) | ⬜ |
+| Deploy job writes `.env` on EC2 from GitHub Secrets | ✅ |
+| Add GitHub Secrets `SHOPPING_DB_PASSWORD`, `SHOPPING_JWT_SECRET`, `OMISE_SECRET_KEY` | ⬜ |
 | Re-issue TLS certificate (drop `lovelypet`, add `shopping`) + `certbot renew --dry-run` | ⬜ |
 | First admin account + seed catalogue on the server | ⬜ |
 | Verify live: full purchase in test mode, re-measure instance RAM | ⬜ |

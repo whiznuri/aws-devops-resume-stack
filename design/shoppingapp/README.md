@@ -203,15 +203,16 @@ Tests: `cd api && uv run pytest -q` (needs the db container running).
 
 ## Deployment runbook (EC2)
 
-**1. Secrets** — create `~/aws-devops-resume-stack/.env` on the server (not in git):
+**1. Secrets** — stored once in GitHub (**Settings → Secrets and variables → Actions → New repository secret**). The deploy job passes them over SSH and writes `~/aws-devops-resume-stack/.env` on the server (mode 600, git-ignored) on every deploy.
 
-```bash
-SHOPPING_DB_PASSWORD=<long random string>
-SHOPPING_JWT_SECRET=<at least 32 random characters>   # e.g. openssl rand -hex 32
-OMISE_SECRET_KEY=skey_test_...                         # optional
-```
+| Secret | Value |
+|---|---|
+| `SHOPPING_DB_PASSWORD` | `openssl rand -hex 24` (hex only: the password is embedded in a database URL, so `@ : / ?` would break it) |
+| `SHOPPING_JWT_SECRET` | `openssl rand -hex 32` |
+| `OMISE_SECRET_KEY` | `skey_test_...` (optional; payments are disabled without it) |
 
-`docker compose` refuses to start if the first two are missing.
+The job stops before touching the server if either of the first two is missing, and `docker compose` also refuses to start without them.
+PostgreSQL applies `SHOPPING_DB_PASSWORD` only when its data volume is first created; changing the secret later also requires `ALTER USER shop PASSWORD '...'` inside the database.
 
 **2. TLS certificate** — the existing certificate (`--cert-name diffan.dev`) still lists `lovelypet.diffan.dev`, whose DNS record was removed. Renewal validates every name, so it would fail for the whole certificate. Re-issue it with the new name list after the new Nginx config is live:
 

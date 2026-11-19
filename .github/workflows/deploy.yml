@@ -139,14 +139,27 @@ jobs:
       # Step 4: SSH เข้า EC2 เพื่อ Pull และ Deploy
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          # ค่าลับของ Shopping App เก็บใน GitHub Secrets ที่เดียว แล้วส่งไปเขียนเป็น .env บน EC2 ตอน deploy
+          SHOPPING_DB_PASSWORD: ${{ secrets.SHOPPING_DB_PASSWORD }}
+          SHOPPING_JWT_SECRET: ${{ secrets.SHOPPING_JWT_SECRET }}
+          OMISE_SECRET_KEY: ${{ secrets.OMISE_SECRET_KEY }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: SHOPPING_DB_PASSWORD,SHOPPING_JWT_SECRET,OMISE_SECRET_KEY
           script: |
             set -e   # คำสั่งไหนพัง หยุดทันที + CI ขึ้นแดง (เดิมพังกลางทางแล้วยังเขียว)
+            # เช็คก่อนแตะอะไรบนเครื่อง: ลืมใส่ secret → หยุดตรงนี้ เว็บเดิมรันต่อไม่กระทบ
+            [ -n "$SHOPPING_DB_PASSWORD" ] || { echo "ยังไม่ได้ตั้ง GitHub Secret: SHOPPING_DB_PASSWORD"; exit 1; }
+            [ -n "$SHOPPING_JWT_SECRET" ] || { echo "ยังไม่ได้ตั้ง GitHub Secret: SHOPPING_JWT_SECRET"; exit 1; }
             cd ~/aws-devops-resume-stack
             git pull origin main
+            # เขียน .env ใหม่ทุก deploy (umask 077 = อ่าน/เขียนได้เฉพาะเจ้าของไฟล์) · ไฟล์นี้อยู่ใน .gitignore
+            umask 077
+            printf 'SHOPPING_DB_PASSWORD=%s\nSHOPPING_JWT_SECRET=%s\nOMISE_SECRET_KEY=%s\n' \
+              "$SHOPPING_DB_PASSWORD" "$SHOPPING_JWT_SECRET" "$OMISE_SECRET_KEY" > .env
             docker compose pull web-resume shopping-api shopping-web
             # DB ไม่ force-recreate (ไม่ต้องรีสตาร์ท DB ทุก deploy) · ขึ้นก่อนให้ API มีที่ต่อ
             docker compose up -d shopping-db

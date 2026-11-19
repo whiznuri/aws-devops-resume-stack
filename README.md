@@ -156,6 +156,7 @@ Problems hit and fixed during development, kept as a record of troubleshooting r
 ## Repository notes
 
 - Terraform state files (`*.tfstate`) and `.terraform/` are excluded through `.gitignore`; so are `.env` files.
+- Shopping App secrets live in GitHub Secrets; the deploy job writes them to an untracked `.env` on the instance.
 - Pushes to `main` trigger a deployment. Documentation-only commits can include `[skip ci]` in the message to avoid redeploying.
 
 ## Legacy (archived 19 Nov 2026)
