@@ -1,0 +1,63 @@
+name: Ops (manual tasks on EC2)
+
+# Runbook as code: งานดูแลเครื่องที่ต้องทำบน EC2 กดรันจากแท็บ Actions → "Ops" → Run workflow
+# ใช้กุญแจ SSH ชุดเดียวกับ deploy · repo เป็น public → log เปิดให้ทุกคนดูได้ ค่าลับต้องมาจาก secrets เท่านั้น (GitHub ปิดบังให้)
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "งานที่จะทำ"
+        type: choice
+        default: status-report
+        options:
+          - status-report    # ดู RAM / load / container (ไม่แก้อะไร)
+          - renew-tls-cert   # ออกใบรับรองใหม่: diffan.dev, www, grafana, shopping (เอา lovelypet ออก)
+          - seed-products    # ใส่สินค้าตัวอย่าง (รันซ้ำได้ ตัวที่มีแล้วข้าม)
+          - create-admin     # สร้าง admin จาก secret SHOPPING_ADMIN_EMAIL + SHOPPING_ADMIN_PASSWORD
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run "${{ inputs.task }}" on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          TASK: ${{ inputs.task }}
+          ADMIN_EMAIL: ${{ secrets.SHOPPING_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.SHOPPING_ADMIN_PASSWORD }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: TASK,ADMIN_EMAIL,ADMIN_PASSWORD
+          script: |
+            set -e
+            cd ~/aws-devops-resume-stack
+
+            case "$TASK" in
+              renew-tls-cert)
+                # --cert-name แก้ใบเดิม · รายชื่อ -d = รายชื่อใหม่ทั้งหมด (ตัวที่ไม่ใส่จะหลุดออก)
+                sudo certbot certonly --webroot -w /var/www/certbot --cert-name diffan.dev \
+                  --non-interactive --agree-tos \
+                  -d diffan.dev -d www.diffan.dev -d grafana.diffan.dev -d shopping.diffan.dev
+                docker exec nginx-proxy nginx -t
+                docker exec nginx-proxy nginx -s reload
+                sudo certbot certificates --cert-name diffan.dev
+                sudo certbot renew --dry-run
+                ;;
+              seed-products)
+                docker compose exec -T shopping-api python -m app.scripts.seed_products
+                ;;
+              create-admin)
+                [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ] || { echo "ตั้ง secret SHOPPING_ADMIN_EMAIL และ SHOPPING_ADMIN_PASSWORD ก่อน"; exit 1; }
+                # ส่งรหัสทาง stdin (ไม่อยู่ใน command line ที่ ps มองเห็น) · สคริปต์อ่านด้วย getpass
+                printf '%s\n' "$ADMIN_PASSWORD" | docker compose exec -T shopping-api python -m app.scripts.create_user "$ADMIN_EMAIL" admin
+                ;;
+              status-report) ;;
+            esac
+
+            echo "===== status ====="
+            uptime
+            free -h
+            docker compose ps --format "table {{.Name}}\t{{.Status}}"
+            docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
